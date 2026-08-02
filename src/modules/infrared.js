@@ -296,10 +296,15 @@ function renderGrid(g, lens, body, onChange) {
       const band = tested ? cell.band : null;
       const value = tested ? cell.hsi_stops.toFixed(2) : '—';
 
-      const bar = div('mx-bar');
-      bar.setAttribute('aria-hidden', 'true');
-      for (let i = 0; i < 3; i++) {
-        bar.append(el('i', { class: tested && band.step > i ? 'on' : '' }));
+      // The segment bar exists ONLY on tested cells. A "clean" cell is step 0,
+      // so an untested cell drawn with an empty bar looked exactly like a
+      // clean one on this channel — the bar was decoration claiming to be a
+      // distinguishing signal. Absent-vs-present is a real difference; three
+      // empty boxes next to three empty boxes is not.
+      const bar = tested ? div('mx-bar') : null;
+      if (bar) {
+        bar.setAttribute('aria-hidden', 'true');
+        for (let i = 0; i < 3; i++) bar.append(el('i', { class: band.step > i ? 'on' : '' }));
       }
 
       const label = tested
@@ -312,7 +317,7 @@ function renderGrid(g, lens, body, onChange) {
         dataset: tested ? { band: String(band.step) } : { untested: 'true' },
         attrs: { 'aria-label': label },
         on: { click: () => openCellEditor(lens, body, cell, onChange) },
-      }, [div('mx-v', [value]), bar]));
+      }, [div('mx-v', [value]), bar].filter(Boolean)));
     }
   }
   scroll.append(table);

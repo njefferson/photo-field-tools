@@ -55,12 +55,16 @@ is a fail state.
 **Hotspot UNTESTED.** Spec §7 calls this load-bearing in the field. Four
 channels, colour last:
 1. an em dash instead of a number
-2. an empty segment bar
+2. **no severity bar at all** — note this is *absence*, not an empty bar. A
+   clean cell is severity step 0, so an untested cell drawn with three empty
+   segments matched it exactly on this channel and the "signal" distinguished
+   nothing. Caught by looking at a screenshot after the gate had passed.
 3. a dashed 2px rail plus a diagonal hatch pattern
 4. an accessible name containing the word UNTESTED
 
-Under `forced-colors`, the fills vanish by design and the dashed border and the
-segment bar carry it.
+Under `forced-colors`, the fills vanish by design. Severity is then carried by
+the printed number and the segment bar; untested by the dashed border and the
+absence of both.
 
 **Diffraction sweep, past the circle of confusion.** Three channels:
 1. the words "· over c" in the row's text
@@ -163,6 +167,14 @@ more useful than a half-built grid. Replaced with `role="group"`.
 ### A-08 · Dialog content sat flush against the footer's Close button — FIXED in 0.1.0
 A finger overshooting downward from the last control would land on Close.
 Added bottom padding inside the scrolling body so content never touches it.
+
+### A-09b · An untested cell's "empty bar" distinguished nothing — FIXED in 0.1.0
+A clean cell is severity step 0, so it also drew three empty segments. The bar
+was listed here as one of four channels separating untested from clean, and on
+that pair it carried no information at all. Untested cells now draw no bar; the
+acceptance gate asserts absence-vs-presence rather than counting segments.
+Found by looking at a rendered screenshot **after** the gate reported green —
+Doctrine §6, verify at the scale the user sees.
 
 ### A-09 · Control spacing was 6.4px in four places — FIXED in 0.1.0
 Chips, button rows, list rows and the stepper all used a 0.4–0.5rem gap against

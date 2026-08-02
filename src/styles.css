@@ -325,7 +325,9 @@ textarea { min-height: 4.5rem; resize: vertical; }
 
 /* Stepper: −, value, + (spec §9 prefers steppers over raw keyboards) */
 .stepper { display: flex; align-items: stretch; gap: 0.625rem; }
-.stepper input { flex: 1 1 auto; text-align: center; }
+.stepper input { flex: 1 1 auto; text-align: center; min-width: 0; }
+/* The unit suffix wrapped to two stacked letters ("m" over "m") at 400px. */
+.stepper > .hint { flex: 0 0 auto; align-self: center; white-space: nowrap; }
 .step-btn {
   flex: 0 0 var(--tap);
   min-width: var(--tap); min-height: var(--tap);

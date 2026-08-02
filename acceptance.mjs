@@ -296,6 +296,7 @@ try {
           text: c.querySelector('.mx-v')?.textContent ?? '',
           label: c.getAttribute('aria-label') || '',
           segments: [...c.querySelectorAll('.mx-bar i.on')].length,
+          hasBar: !!c.querySelector('.mx-bar'),
         };
         out.count += 1;
         if (c.dataset.untested === 'true') out.untested = rec;
@@ -325,6 +326,13 @@ try {
       check('§11.6', /UNTESTED/.test(u.label) && !/UNTESTED/i.test(c.label),
         'the accessible name says UNTESTED',
         `accessible name does not distinguish: "${u.label}"`);
+      // A CLEAN cell is severity step 0, so an untested cell drawn with an
+      // empty bar matched it exactly on this channel. The bar must be absent
+      // on untested cells, not merely empty — otherwise ACCESSIBILITY.md is
+      // claiming a distinguishing signal that does not distinguish.
+      check('§11.6', u.hasBar === false && c.hasBar === true,
+        'the severity bar is absent on untested cells, present on clean ones',
+        `the segment bar does not distinguish them (untested hasBar=${u.hasBar}, clean hasBar=${c.hasBar})`);
       // And the two fills are far enough apart to be told apart at a glance.
       const contrast = await page.evaluate(([a, b]) => {
         const parse = (s) => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
