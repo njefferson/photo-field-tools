@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Photo Field Tools — social preview card</title>
+<style>
+  /* Doctrine §10: the social-preview tile carries the app's NAME, in real type.
+     A card renders at roughly a third of its size beside nothing but a bare
+     domain, so artwork alone tells a stranger nothing about what they are
+     being shown. Name, tagline, and one plain line of what it is.
+
+     §3: the artwork is wordless; all lettering is overlaid here, in a real
+     font, in the app's own palette. The palette is the Instrument family,
+     exactly as src/styles.css declares it — the card is not a second place
+     colours are invented. */
+  :root {
+    --page:#1a1a1a; --page-alt:#232323;
+    --surface:#3a3a3a; --rail:rgba(255,255,255,.62);
+    --txt:#eaeaea; --txt-2:#d2d2d2; --txt-3:#c1c1c1;
+    --accent:#9fc2f5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1200px;height:630px}
+  body{
+    background:
+      radial-gradient(900px 620px at 82% 12%, #2b2b2b 0%, rgba(43,43,43,0) 66%),
+      linear-gradient(180deg,var(--page-alt),var(--page));
+    color:var(--txt);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; gap:64px;
+    padding:0 88px; position:relative; overflow:hidden;
+  }
+
+  /* The mark, at a size that survives the ~third-scale render. */
+  .mark{flex:0 0 auto;width:232px;height:232px}
+  .mark svg{width:100%;height:100%;display:block}
+
+  .body{flex:1 1 auto;min-width:0}
+  h1{font-size:84px;font-weight:670;letter-spacing:-0.028em;line-height:1.02}
+  .rule{
+    width:168px;height:7px;border-radius:7px;margin:26px 0 24px;
+    background:var(--accent);
+  }
+  .tag{font-size:34px;color:var(--txt-2);line-height:1.28;max-width:720px}
+  .what{font-size:25px;color:var(--txt-3);line-height:1.35;margin-top:20px;max-width:720px}
+
+  .values{display:flex;gap:14px;margin-top:38px;flex-wrap:wrap}
+  .vchip{
+    font-size:23px;font-weight:600;letter-spacing:0.02em;
+    color:var(--txt); background:var(--surface);
+    border:1px solid var(--rail); border-radius:999px;
+    padding:12px 22px; display:inline-flex; align-items:center;
+  }
+
+  /* render-social.mjs toggles this to photograph the backdrop with no glyphs
+     on it, so the contrast measurement samples what is really under each line
+     rather than the element box (§10: sample inside each LINE's tight rect). */
+  body.measuring .measure{visibility:hidden}
+</style>
+</head>
+<body>
+  <div class="mark" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <g fill="none" stroke="#9fc2f5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="256" cy="256" r="170"/>
+        <path d="M256 160 L339.1 208 L339.1 304 L256 352 L172.9 304 L172.9 208 Z"/>
+        <g stroke-width="18">
+          <path d="M256 160 L401.5 172"/>
+          <path d="M339.1 208 L401.5 340"/>
+          <path d="M339.1 304 L256 424"/>
+          <path d="M256 352 L110.5 340"/>
+          <path d="M172.9 304 L110.5 172"/>
+          <path d="M172.9 208 L256 88"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="body">
+    <h1 class="measure" data-color="#eaeaea">Photo Field Tools</h1>
+    <div class="rule"></div>
+    <p class="tag measure" data-color="#d2d2d2">Capture-time calculators for the field.</p>
+    <p class="what measure" data-color="#c1c1c1">Depth of field, exposure, diffraction, sun &amp; moon, an incident
+      light meter, macro and infrared — offline, on your device.</p>
+    <div class="values">
+      <span class="vchip measure" data-color="#eaeaea">Free</span>
+      <span class="vchip measure" data-color="#eaeaea">No account</span>
+      <span class="vchip measure" data-color="#eaeaea">Works offline</span>
+    </div>
+  </div>
+</body>
+</html>

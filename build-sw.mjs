@@ -44,7 +44,10 @@ const all = walk(DIST);
 // are files that are not part of the running app: the worker itself (it is the
 // thing doing the caching) and Cloudflare's `_headers`, which is a deploy
 // directive and never fetched by the page.
-const EXCLUDE = new Set(['/sw.js', '/_headers']);
+// og.png is excluded deliberately: it is ~200 KB that only link-preview
+// crawlers ever fetch, and precaching it would make every offline install
+// carry an image the running app never displays.
+const EXCLUDE = new Set(['/sw.js', '/_headers', '/og.png']);
 const precache = all.filter((p) => !EXCLUDE.has(p)).sort();
 
 if (!precache.some((p) => p === '/index.html')) {

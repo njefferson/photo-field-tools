@@ -212,6 +212,11 @@ Nothing headless settles these. No session should claim them.
   both entry paths (manual per-cell, JSON import) work today; the studio's
   exporter does not have to exist first.
 - **A changelog**, once there is a second release to put in it.
+- **Repo metadata** — description, website, topics and the social-preview
+  image are GitHub-UI steps the session token cannot perform (Doctrine §10).
+  The tile itself is built and measured: `npm run render:social` writes
+  `public/og.png` and exits non-zero if any line of text fails against the real
+  backdrop under it. The exact values to paste are in the session handoff.
 
 ---
 
@@ -230,3 +235,8 @@ Nothing headless settles these. No session should claim them.
   cannot open FAILS.
 - Adding a new fg/bg pair? Register it in `a11y-gate.mjs` in the SAME commit
   (Doctrine §4).
+- `render-social.mjs` both renders the preview card AND gates its contrast,
+  sampling the lightest real backdrop pixel inside each LINE's tight rect
+  rather than the element box. Re-run it after any change to `social-card.html`.
+- `og.png` is deliberately EXCLUDED from the service-worker precache: ~270 KB
+  that only link-preview crawlers fetch and the running app never displays.
