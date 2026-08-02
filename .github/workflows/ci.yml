@@ -30,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -74,11 +76,13 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           path: app
+          persist-credentials: false
 
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: njefferson/noahjefferson
           path: hub
+          persist-credentials: false
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -87,8 +91,21 @@ jobs:
       - name: Palette gate (hub instrument, app values)
         run: node hub/palette-check.mjs app/palettes/photo-field-tools.json
 
-      # Doctrine §16.1 / LESSONS §8 — nothing that executes floats on a tag.
-      - name: Pin gate (hub instrument)
+      # Workflow security. zizmor is a MAINTAINED, off-the-shelf auditor and it
+      # is doing the heavy lifting here — on its first run against this repo it
+      # found template injection and credential persistence in workflows this
+      # project had hand-written, while a bespoke checker sat beside them
+      # finding nothing. Standard tooling first; hand-rolled only where nothing
+      # standard exists.
+      - name: Install zizmor
+        run: pipx install zizmor || pip install zizmor
+
+      - name: Workflow security audit
+        run: zizmor --offline --min-severity medium app/.github/workflows/
+
+      # What zizmor does NOT cover: npm hygiene. Lockfile present, `npm ci`
+      # rather than `npm install`, no undeclared dependencies (Doctrine §16.3).
+      - name: npm hygiene (hub instrument)
         run: node hub/pin-check.mjs --repo app
 
       # LESSONS §14 — a staged candidate must be recorded with its URL and

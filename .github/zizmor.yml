@@ -1,0 +1,20 @@
+# zizmor configuration — GitHub Actions security audit.
+#
+# Suppressions are EXPLAINED, never blanket. Doctrine §4's rule about printed
+# exemptions applies just as well to a security audit: an ignore with no stated
+# reason is indistinguishable from one nobody understood.
+
+rules:
+  cache-poisoning:
+    ignore:
+      # deploy.yml — the audit fires on `actions/setup-node` in a job that
+      # publishes. The concern is real and it is already mitigated: this job
+      # sets no `cache:` input at all, so setup-node does no dependency
+      # caching, and `npm ci` on this tree takes about two seconds. zizmor 1.29
+      # flags the action's presence rather than an enabled cache, so there is
+      # nothing further to change in the workflow.
+      #
+      # RE-CHECK THIS if a `cache:` input is ever added to that step, or if a
+      # zizmor upgrade starts distinguishing the two — at that point the
+      # suppression is hiding something real.
+      - deploy.yml
