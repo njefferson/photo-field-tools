@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="An aperture iris">
+  <!-- Wordless by design (Doctrine §3). All lettering lives on the social
+       preview card, set in real type, never inside the icon: at 48px on a home
+       screen there is no size at which a word here would be legible.
+       Everything sits inside radius 183, well within the maskable safe zone
+       (radius 205 of 512), so no platform's mask can crop the mark. -->
+  <rect width="512" height="512" fill="#1a1a1a"/>
+  <g fill="none" stroke="#9fc2f5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="170"/>
+    <path d="M256 160 L339.1 208 L339.1 304 L256 352 L172.9 304 L172.9 208 Z"/>
+    <g stroke-width="18">
+      <path d="M256 160 L401.5 172"/>
+      <path d="M339.1 208 L401.5 340"/>
+      <path d="M339.1 304 L256 424"/>
+      <path d="M256 352 L110.5 340"/>
+      <path d="M172.9 304 L110.5 172"/>
+      <path d="M172.9 208 L256 88"/>
+    </g>
+  </g>
+</svg>

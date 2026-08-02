@@ -1,0 +1,26 @@
+# Doctrine §16.1: pin what executes, and keep the pins current.
+#
+# Actions are referenced by commit SHA in the workflows, which is safe but
+# static — without this file those pins silently rot. Dependabot reads the SHA
+# comments (# v5) and opens PRs that move them.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    # suncalc is the only thing that reaches a browser. Group the tooling so
+    # the one PR that actually changes shipped bytes is not lost among them.
+    groups:
+      tooling:
+        patterns:
+          - vite
+          - axe-core
+          - playwright-core

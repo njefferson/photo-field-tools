@@ -1,0 +1,644 @@
+/* styles.css — the ONE place colour tokens are declared.
+ *
+ * PALETTES.md §6: "Before adding families, consolidate. If a palette is
+ * declared in N places, adding F families makes it N×F×2 blocks that must
+ * never drift." So there is exactly one :root block per theme, and every
+ * component below refers to tokens only. No component ever names a hex value.
+ *
+ * The palette is the INSTRUMENT family from the hub's palettes/families.json —
+ * the recommended default, and the only family whose worst text pairing is
+ * >= 4.87 across all four of its palettes. Values are copied unchanged and
+ * re-checked here by palettes/photo-field-tools.json + the hub's
+ * palette-check.mjs, and by a11y-gate.mjs against the real rendered DOM.
+ *
+ * SIZING IS IN rem (Doctrine §4): page zoom scales px, so a px-only stylesheet
+ * looks fine under zoom while ignoring the text-size preference a low-vision
+ * reader is most likely to have actually set.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Tokens — Instrument night (default; spec §9 says dark)
+ * ------------------------------------------------------------------ */
+:root {
+  --page:        #1a1a1a;
+  --page-alt:    #232323;
+  --surface:     #3a3a3a;   /* rest   */
+  --surface-2:   #414141;   /* raised */
+  --surface-3:   #484848;   /* pressed */
+  --rail:        rgba(255, 255, 255, .62);   /* load-bearing control edge */
+  --hairline:    rgba(255, 255, 255, .17);   /* decoration only */
+  --txt:         #eaeaea;
+  --txt-2:       #d2d2d2;
+  --txt-3:       #c1c1c1;   /* the build stamp lives here — a TOKEN, never opacity (§7b) */
+  --accent:      #9fc2f5;
+  --accent-soft: rgba(159, 194, 245, .15);
+
+  /* Hotspot severity fills. Deliberately restrained: the fill is the THIRD
+     channel, after the printed number and the segment bar, so it never has to
+     carry meaning alone (Doctrine §4) and never has to fight the text for
+     contrast. Registered in a11y-gate.mjs and measured in both themes. */
+  --sev-0: #2f4033;
+  --sev-1: #4d431f;
+  --sev-2: #5c3a1f;
+  --sev-3: #63292c;
+  --sev-untested: #2a2a2a;
+  --sev-hatch: rgba(255, 255, 255, .22);
+
+  --ok:      #8fd6a4;
+  --warn:    #f0c66b;
+  --danger:  #f2a0a0;
+
+  --radius: 14px;
+  --tap: 48px;               /* spec §9: 48px floor, stricter than Doctrine's 44 */
+  --gap: 0.75rem;
+  --maxw: 46rem;
+}
+
+:root[data-theme="light"] {
+  --page:        #c4bcab;
+  --page-alt:    #ccc4b3;
+  --surface:     #eee6d6;
+  --surface-2:   #f4ecdd;
+  --surface-3:   #faf3e5;
+  --rail:        rgba(39, 33, 25, .68);
+  --hairline:    rgba(39, 33, 25, .22);
+  --txt:         #272119;
+  --txt-2:       #363026;
+  --txt-3:       #4a4436;
+  --accent:      #17458f;
+  --accent-soft: rgba(23, 69, 143, .12);
+
+  --sev-0: #d7e3d0;
+  --sev-1: #eee0b6;
+  --sev-2: #f2d7bb;
+  --sev-3: #f0cccc;
+  --sev-untested: #b8b0a0;
+  --sev-hatch: rgba(39, 33, 25, .30);
+
+  --ok:      #1c5c33;
+  --warn:    #6b4a05;
+  --danger:  #7d1f1f;
+}
+
+/* ------------------------------------------------------------------ *
+ * Reset and page frame
+ * ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  overflow-wrap: anywhere;    /* long identifiers must wrap, not widen the page */
+  background: var(--page);
+  color: var(--txt);
+  font: 400 1rem/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  /* Header outside the scroll box; only .main scrolls. See index.html. */
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  /* minmax(0, 1fr), NOT the default `auto`: an auto grid column sizes to its
+     widest descendant's MIN-CONTENT, so the horizontally-scrolling hotspot
+     matrix widened the whole page — header included — to 345px in a 320px
+     viewport. The scroll container can only do its job if its ancestors are
+     allowed to be narrower than it. */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.main {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--gap) var(--gap) 3rem;
+  /* Respect the notch without letting content hide under it. */
+  padding-left: max(var(--gap), env(safe-area-inset-left));
+  padding-right: max(var(--gap), env(safe-area-inset-right));
+}
+.main:focus { outline: none; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; min-width: 0; }
+
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 50;
+  background: var(--surface-3); color: var(--txt);
+  padding: 0.75rem 1rem; border-radius: 0 0 var(--radius) 0;
+  border: 2px solid var(--rail);
+}
+.skip:focus { left: 0; }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px;
+  margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+.noscript { max-width: 40rem; margin: 2rem auto; padding: 1rem; }
+
+/* ------------------------------------------------------------------ *
+ * App bar — body profile, lens, build stamp. Visible in every module (spec §9).
+ * ------------------------------------------------------------------ */
+.appbar {
+  background: var(--page-alt);
+  border-bottom: 1px solid var(--hairline);
+  padding: 0.5rem var(--gap);
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+.appbar-inner {
+  max-width: var(--maxw); margin: 0 auto;
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+}
+
+.homebtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 0.4rem;
+  min-width: var(--tap); min-height: var(--tap);
+  padding: 0 0.7rem;
+  background: var(--surface); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: var(--radius);
+  font-size: 0.9375rem; font-weight: 600;
+  cursor: pointer;
+}
+.homebtn:hover { background: var(--surface-2); }
+
+/* The two globals, always reachable, always showing their current value. */
+.globals { display: flex; gap: 0.5rem; flex: 1 1 auto; min-width: 0; }
+
+.global-btn {
+  flex: 1 1 0; min-width: 0;
+  min-height: var(--tap);
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 1px;
+  padding: 0.25rem 0.6rem;
+  text-align: left;
+  background: var(--surface); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+}
+.global-btn:hover { background: var(--surface-2); }
+.global-btn .k {
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--txt-3);
+}
+.global-btn .v {
+  font-size: 0.875rem; font-weight: 650;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Doctrine §7b: discreet, always on screen, real running value, selectable,
+   dimmed with a colour TOKEN (--txt-3) and never with opacity. */
+.stamp {
+  font-size: 0.75rem; font-variant-numeric: tabular-nums;
+  color: var(--txt-3);
+  user-select: text; -webkit-user-select: text;
+  white-space: nowrap;
+}
+
+.ir-flag {
+  font-size: 0.6875rem; font-weight: 700; letter-spacing: .06em;
+  padding: 0.15rem 0.4rem; border-radius: 6px;
+  background: var(--accent-soft); color: var(--txt);
+  border: 1px solid var(--rail);
+}
+
+/* ------------------------------------------------------------------ *
+ * Home grid (spec §9: one tap to any tool)
+ * ------------------------------------------------------------------ */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--gap);
+  margin: var(--gap) 0;
+}
+.tile {
+  display: flex; flex-direction: column; gap: 0.3rem;
+  min-height: 6.5rem; padding: 0.85rem;
+  background: var(--surface); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: var(--radius);
+  text-decoration: none; text-align: left;
+  font: inherit; cursor: pointer;
+}
+.tile:hover { background: var(--surface-2); }
+.tile .t-name { font-size: 1.0625rem; font-weight: 680; line-height: 1.2; }
+.tile .t-sub { font-size: 0.8125rem; color: var(--txt-2); line-height: 1.3; }
+.tile[aria-disabled="true"] { border-style: dashed; }
+.tile[aria-disabled="true"] .t-sub { color: var(--txt-3); }
+
+/* ------------------------------------------------------------------ *
+ * Cards, headings, readouts
+ * ------------------------------------------------------------------ */
+h1 { font-size: 1.4rem; line-height: 1.2; margin: 0.4rem 0 0.2rem; }
+h2 { font-size: 1.0625rem; line-height: 1.25; margin: 0 0 0.5rem; }
+h3 { font-size: 0.9375rem; margin: 0 0 0.35rem; }
+
+.lede { color: var(--txt-2); font-size: 0.9375rem; margin: 0 0 var(--gap); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rail);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+  margin: 0 0 var(--gap);
+}
+.card + .card { margin-top: var(--gap); }
+
+/* Large numerals — spec §9. clamp() so they scale with the reader's setting
+   instead of being pinned to one size. */
+.readout {
+  display: flex; flex-wrap: wrap; gap: 0.6rem 1.2rem;
+  margin: 0.3rem 0;
+}
+.ro { min-width: 6.5rem; }
+.ro .k {
+  display: block;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--txt-3);
+}
+.ro .v {
+  display: block;
+  font-size: clamp(1.35rem, 5.5vw, 1.85rem);
+  font-weight: 700; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.ro .v.sm { font-size: clamp(1rem, 4vw, 1.2rem); }
+.ro .n { display: block; font-size: 0.75rem; color: var(--txt-2); margin-top: 2px; }
+
+/* The provenance line. Acceptance §11.2: every DoF, diffraction and macro
+   output displays which CoC basis and which wavelength produced it. This is
+   that line, and it is not optional decoration. */
+.basis {
+  font-size: 0.8125rem; color: var(--txt-2);
+  border-top: 1px solid var(--hairline);
+  margin-top: 0.6rem; padding-top: 0.5rem;
+}
+.basis b { color: var(--txt); font-weight: 650; }
+
+/* Approximation and caveat notes — spec is full of things that must be said
+   out loud rather than implied. */
+.caveat {
+  font-size: 0.8125rem; color: var(--txt-2);
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 0.5rem 0.6rem; margin: 0.5rem 0 0;
+}
+.caveat strong { color: var(--txt); }
+
+.warnbox {
+  font-size: 0.875rem; color: var(--txt);
+  background: var(--surface-2);
+  border: 1px solid var(--rail);
+  border-left: 4px solid var(--warn);
+  border-radius: 0 8px 8px 0;
+  padding: 0.6rem; margin: 0.5rem 0 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Controls
+ * ------------------------------------------------------------------ */
+.field { margin: 0 0 0.85rem; }
+.field > label, .field-label {
+  display: block; font-size: 0.8125rem; font-weight: 620;
+  color: var(--txt-2); margin: 0 0 0.3rem;
+}
+.hint { font-size: 0.75rem; color: var(--txt-3); margin: 0.25rem 0 0; }
+
+input[type="file"] {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0.7rem 0.65rem;
+  background: var(--surface-2); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: 10px;
+  font: inherit;
+}
+
+input[type="text"], input[type="number"], input[type="date"], input[type="time"],
+select, textarea {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0.5rem 0.65rem;
+  background: var(--surface-2); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: 10px;
+  font: inherit; font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+textarea { min-height: 4.5rem; resize: vertical; }
+
+/* Stepper: −, value, + (spec §9 prefers steppers over raw keyboards) */
+.stepper { display: flex; align-items: stretch; gap: 0.625rem; }
+.stepper input { flex: 1 1 auto; text-align: center; }
+.step-btn {
+  flex: 0 0 var(--tap);
+  min-width: var(--tap); min-height: var(--tap);
+  background: var(--surface-3); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: 10px;
+  font-size: 1.35rem; font-weight: 700; line-height: 1;
+  cursor: pointer;
+}
+.step-btn:hover { background: var(--surface-2); }
+.step-btn:disabled { color: var(--txt-3); cursor: not-allowed; }
+
+/* Preset chips for standard values. */
+.chips { display: flex; flex-wrap: wrap; gap: 0.625rem; }  /* >= 8px: tremor overshoot, Doctrine §4 */
+.chip {
+  min-height: var(--tap);
+  min-width: var(--tap);      /* a chip reading "1" was 38.4px wide */
+  padding: 0 0.75rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: 999px;
+  font: inherit; font-size: 0.9375rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  /* Doctrine §4: A CONTROL MUST NOT MOVE WHEN IT IS USED. The selected state
+     changes only colour and border WIDTH-NEUTRAL properties — the 2px border
+     is present in both states, transparent when unselected, so pressing a chip
+     never reflows the row under a finger already on its way. */
+  border-width: 2px;
+  border-color: var(--rail);        /* a control edge is a RAIL, not a hairline
+                                       — measured 1.54:1 as a hairline (1.4.11) */
+}
+.chip:hover { background: var(--surface-3); }
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  /* Second channel, so selection is not carried by colour alone. */
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 1rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  background: var(--surface-3); color: var(--txt);
+  border: 1px solid var(--rail); border-radius: 10px;
+  font: inherit; font-size: 0.9375rem; font-weight: 650;
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent-soft); }
+.btn:disabled { color: var(--txt-3); cursor: not-allowed; }
+
+.btnrow { display: flex; flex-wrap: wrap; gap: 0.625rem; margin-top: 0.6rem; }
+
+/* Doctrine §4 tremor: targets are SPACED, not only sized. A destructive
+   control never sits next to a routine one. */
+.btn.danger { border-color: var(--danger); }
+.spacer-lg { width: 100%; height: 0.5rem; }
+
+/* Focus is NEVER removed (Doctrine §4). */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Depth-of-field band (spec §5.1)
+ * ------------------------------------------------------------------ */
+.band {
+  position: relative;
+  height: 3rem;
+  margin: 0.5rem 0 0.3rem;
+  background: var(--surface-2);
+  border: 1px solid var(--rail);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.band-fill {
+  position: absolute; top: 0; bottom: 0;
+  background: var(--accent-soft);
+  /* The in-focus region is bounded by real edges, so it is identifiable
+     without relying on the fill tint alone (SC 1.4.11). */
+  border-left: 3px solid var(--accent);
+  border-right: 3px solid var(--accent);
+}
+.band-subject {
+  position: absolute; top: 0; bottom: 0; width: 3px;
+  background: var(--txt);
+}
+.band-subject::after {
+  content: ""; position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top: 7px solid var(--txt);
+}
+.band-scale {
+  display: flex; justify-content: space-between;
+  font-size: 0.75rem; color: var(--txt-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ *
+ * Diffraction sweep (spec §5.4)
+ * ------------------------------------------------------------------ */
+.sweep { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.5rem; }
+.sweep-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+.sweep-f {
+  flex: 0 0 3.2rem; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+.sweep-bar {
+  flex: 1 1 auto; height: 1.25rem; position: relative;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden;
+}
+.sweep-bar i {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--accent-soft); border-right: 2px solid var(--accent);
+}
+/* Over the limit gets a HATCH as well as a colour — the state must survive a
+   grayscale render (Doctrine §4). */
+.sweep-row.over .sweep-bar i {
+  border-right-color: var(--warn);
+  background-image: repeating-linear-gradient(
+    45deg, transparent 0 4px, var(--sev-hatch) 4px 8px);
+}
+.sweep-v {
+  flex: 0 0 5.5rem; text-align: right;
+  font-variant-numeric: tabular-nums; color: var(--txt-2);
+}
+.sweep-row.over .sweep-v { color: var(--txt); font-weight: 650; }
+
+/* ------------------------------------------------------------------ *
+ * Hotspot matrix (spec §7)
+ * ------------------------------------------------------------------ */
+.matrix-scroll { overflow-x: auto; margin: 0.5rem -0.3rem; padding: 0 0.3rem 0.3rem; }
+.matrix-scroll:focus-visible, .dlg-body:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.matrix { display: grid; gap: 0.625rem; min-width: max-content; }  /* cells are buttons — spacing rule applies */
+.mx-head, .mx-rowhead {
+  font-size: 0.75rem; font-weight: 700; color: var(--txt-2);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.25rem; white-space: nowrap;
+}
+.mx-rowhead { justify-content: flex-end; padding-right: 0.5rem; }
+
+.mx-cell {
+  min-width: var(--tap); min-height: var(--tap);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--rail); border-radius: 8px;
+  background: var(--surface-2); color: var(--txt);
+  font: inherit; font-size: 0.8125rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  padding: 2px;
+}
+.mx-cell[data-band="0"] { background: var(--sev-0); }
+.mx-cell[data-band="1"] { background: var(--sev-1); }
+.mx-cell[data-band="2"] { background: var(--sev-2); }
+.mx-cell[data-band="3"] { background: var(--sev-3); }
+
+/* SPEC §7, load-bearing in the field: an untested cell must render visually
+   distinct from a clean one and NEVER as clean. Four separate channels carry
+   it — a dashed rail, a diagonal hatch, a dash instead of a number, and an
+   empty severity bar — so no single failure (colour blindness, glare, a
+   grayscale screenshot) can make it read as safe. */
+.mx-cell[data-untested="true"] {
+  background-color: var(--sev-untested);
+  background-image: repeating-linear-gradient(
+    45deg, transparent 0 5px, var(--sev-hatch) 5px 10px);
+  border-style: dashed;
+  border-width: 2px;
+  color: var(--txt);
+}
+.mx-cell .mx-v { line-height: 1; }
+.mx-cell .mx-bar { display: flex; gap: 2px; }
+.mx-cell .mx-bar i {
+  width: 5px; height: 4px; border-radius: 1px;
+  background: var(--sev-hatch);
+  border: 1px solid var(--rail);
+}
+.mx-cell .mx-bar i.on { background: var(--txt); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 0.625rem; margin-top: 0.6rem; }
+.legend .lg {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.75rem; color: var(--txt-2);
+}
+.legend .sw {
+  width: 1.1rem; height: 1.1rem; border-radius: 4px;
+  border: 1px solid var(--rail);
+}
+.legend .sw[data-band="0"] { background: var(--sev-0); }
+.legend .sw[data-band="1"] { background: var(--sev-1); }
+.legend .sw[data-band="2"] { background: var(--sev-2); }
+.legend .sw[data-band="3"] { background: var(--sev-3); }
+.legend .sw[data-untested="true"] {
+  background-color: var(--sev-untested);
+  background-image: repeating-linear-gradient(45deg, transparent 0 3px, var(--sev-hatch) 3px 6px);
+  border-style: dashed;
+}
+
+/* ------------------------------------------------------------------ *
+ * Meter (spec §6)
+ * ------------------------------------------------------------------ */
+.meter-video { display: none; }
+.meter-big {
+  font-size: clamp(2.5rem, 14vw, 4rem); font-weight: 750;
+  line-height: 1; font-variant-numeric: tabular-nums;
+  margin: 0.3rem 0;
+}
+.meter-rel { color: var(--txt); }
+.meter-state {
+  font-size: 0.8125rem; color: var(--txt-2);
+  display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; margin-top: 0.4rem;
+}
+.meter-state b { color: var(--txt); font-weight: 650; }
+
+/* Countdown (spec §5.3) */
+.count-big {
+  font-size: clamp(3rem, 18vw, 5rem); font-weight: 750;
+  line-height: 1; font-variant-numeric: tabular-nums; text-align: center;
+  margin: 0.4rem 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Lists
+ * ------------------------------------------------------------------ */
+.rows { display: flex; flex-direction: column; gap: 0.625rem; }
+.row {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.7rem; min-height: var(--tap);
+  background: var(--surface-2);
+  border: 1px solid var(--rail); border-radius: 10px;
+}
+.row .rtxt { flex: 1 1 auto; min-width: 0; }
+.row .rname { font-weight: 650; font-size: 0.9375rem; }
+.row .rsub { font-size: 0.8125rem; color: var(--txt-2); }
+
+.empty {
+  padding: 1.1rem; text-align: center;
+  color: var(--txt-2); font-size: 0.9375rem;
+  border: 2px dashed var(--rail); border-radius: var(--radius);
+}
+
+dl.kv { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.8rem; }
+dl.kv dt { color: var(--txt-2); font-size: 0.8125rem; }
+dl.kv dd { margin: 0; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ *
+ * Dialogs — Doctrine §4: every interrupting surface is closeable, the way out
+ * is visible in the first frame AND repeated at the bottom, and it is bounded
+ * in length so it can never grow past its own dismiss.
+ * ------------------------------------------------------------------ */
+dialog {
+  width: min(34rem, calc(100vw - 1.5rem));
+  /* NO FIXED SIZE THAT IGNORES THE SPACE AVAILABLE (Doctrine §4). The panel is
+     measured against the viewport it actually opens into, and its content
+     scrolls INSIDE it rather than overflowing a screen edge. There is no
+     min-height at all: a floor that exceeds the space available is the next
+     fixed size that fails. */
+  max-height: min(80vh, calc(100vh - 2rem));
+  padding: 0;
+  background: var(--surface);
+  color: var(--txt);
+  border: 1px solid var(--rail);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.dlg { display: flex; flex-direction: column; max-height: inherit; }
+.dlg-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.dlg-head h2 { margin: 0; flex: 1 1 auto; font-size: 1.0625rem; }
+.dlg-body { flex: 1 1 auto; overflow-y: auto; padding: 0.8rem 0.7rem 1.25rem; }
+.dlg-foot {
+  flex: 0 0 auto;
+  display: flex; justify-content: flex-end; gap: 0.625rem;
+  padding: 0.6rem 0.7rem;
+  border-top: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.dlg-close { flex: 0 0 auto; min-width: var(--tap); min-height: var(--tap); }
+
+/* ------------------------------------------------------------------ *
+ * Preferences
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .tile, .card, .row, .chip, .btn, .mx-cell { border-width: 2px; }
+  .hint, .ro .n { color: var(--txt-2); }
+}
+
+@media (forced-colors: active) {
+  .tile, .card, .row, .chip, .btn, .mx-cell, .band { border: 1px solid CanvasText; }
+  :focus-visible { outline: 3px solid Highlight; }
+  /* Severity fills vanish under forced colours, which is exactly why the
+     number and the segment bar exist. The hatch is redrawn as a border style
+     so untested stays distinguishable here too. */
+  .mx-cell[data-untested="true"] { border-style: dashed; border-width: 2px; }
+  .mx-cell .mx-bar i.on { background: CanvasText; }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "photo-field-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Capture-time photography calculators for a Nikon Z50-class APS-C pair, one visible and one internally IR-converted. Offline-first installable PWA; no server, no account, no telemetry.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node build-sw.mjs",
+    "preview": "vite preview --port 4173",
+    "test": "node --test \"test/*.test.js\"",
+    "gate:a11y": "node a11y-gate.mjs",
+    "gate:a11y:verbose": "node a11y-gate.mjs --verbose",
+    "gate:acceptance": "node acceptance.mjs",
+    "gate:offline": "node offline-check.mjs",
+    "render:icons": "node render-icons.mjs",
+    "check": "npm run test && npm run build && npm run gate:a11y && npm run gate:acceptance && npm run gate:offline"
+  },
+  "dependencies": {
+    "suncalc": "1.9.0"
+  },
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright-core": "1.56.0",
+    "vite": "7.3.6"
+  },
+  "//runtime-deps": "Doctrine §16.3 — declare every dependency. suncalc is the ONLY runtime dependency and it is BUNDLED by vite, never CDN-loaded (spec §10). Everything else is build/test/gate tooling and never reaches the browser.",
+  "//browser": "playwright-core 1.56.0 ships chromium revision 1194, matching /opt/pw-browsers/chromium-1194 in the session sandbox. A MATCHED PAIR — a mismatched playwright-core connects and then hangs on a protocol mismatch with no error. Same pin as the hub; re-verify if the sandbox browser changes."
+}

@@ -1,0 +1,29 @@
+# Cloudflare Pages headers. Doctrine §16.6: every deployed site ships security
+# headers. These cost one file and break nothing.
+#
+# HONEST NOTE ON CSP, because §16.6 asks for it explicitly rather than an
+# implication: this site has NO Content-Security-Policy. index.html carries an
+# inline <script> that reads the saved theme before first paint, so a strict
+# CSP is a refactor (nonce or hash plumbed through the build), not a header.
+# It is not claimed here and is recorded as open work in NOTES.md.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin
+  # The camera is used by the light meter and geolocation by sun & moon, both
+  # same-origin and both only on explicit user action. Everything else is off.
+  Permissions-Policy: camera=(self), geolocation=(self), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()
+
+# The service worker must never be served stale, or a released fix can sit
+# behind a cached worker for as long as the CDN feels like it.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache
+
+# Hashed assets are immutable by construction — a change produces a new name.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<!-- Doctrine §4: page zoom is NEVER locked. No user-scalable=no, no maximum-scale. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photo Field Tools — capture-time calculators for the field</title>
+<meta name="description" content="Depth of field, exposure, diffraction, sun and moon, incident metering, macro and infrared calculators for a Nikon Z50-class APS-C pair. Works offline, holds nothing on a server.">
+
+<meta name="theme-color" content="#1a1a1a">
+<meta name="color-scheme" content="dark light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<script>
+/* Read the saved theme BEFORE first paint, so there is no flash of the wrong
+   one, and set theme-color to match — a static meta leaves the status bar
+   wrong in the mode it was not written for (PALETTES.md §6).
+   Wrapped in try/catch: a blocked localStorage must not stop the app booting. */
+(function () {
+  try {
+    var raw = localStorage.getItem('photo-field-tools/v1');
+    var theme = raw ? (JSON.parse(raw).settings || {}).theme : null;
+    if (theme !== 'light' && theme !== 'dark') theme = 'dark';   /* spec §9: dark default */
+    document.documentElement.setAttribute('data-theme', theme);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'light' ? '#c4bcab' : '#1a1a1a');
+  } catch (e) { /* defaults in the markup already cover this */ }
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- The global header is OUTSIDE the scrolling region on purpose (Doctrine §14:
+     a header pinned with position:sticky was measured holding at three
+     viewports and still scrolled away on Noah's iPad — the fix is a layout
+     that cannot scroll it, not a better sticky). -->
+<header class="appbar" id="appbar"></header>
+
+<!-- tabindex="0", not -1: <main> is the scrolling box, and a page whose
+     content holds no focusable element (the diffraction sweep) could not
+     be scrolled by keyboard at all. It is still the skip-link target. -->
+<main id="main" class="main" tabindex="0"></main>
+
+<!-- SC 4.1.3: anything the app says without being asked goes through here,
+     which announces without stealing focus. -->
+<div id="live" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<noscript>
+  <div class="noscript">
+    <h1>Photo Field Tools</h1>
+    <p>This app calculates depth of field, exposure, diffraction, sun and moon
+    times, macro magnification and infrared behaviour for a Nikon Z50-class
+    pair. It needs JavaScript, because every calculation runs on your device —
+    there is no server to do it instead.</p>
+    <p><a href="https://noahjefferson.pages.dev/accessibility">Accessibility statement</a></p>
+  </div>
+</noscript>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

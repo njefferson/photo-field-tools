@@ -1,0 +1,128 @@
+name: Deploy
+
+# staging -> preview, main -> production (photo-field-tools.pages.dev)
+#
+# Doctrine §7: STAGING IS A HARD GATE. Land on staging, hand Noah the preview
+# URL, wait for his on-device pass, and promote to main only on his explicit
+# say-so. Never promote on a session's own read of "it's ready".
+#
+# Needs two repo secrets: CLOUDFLARE_API_TOKEN (Pages:Edit only) and
+# CLOUDFLARE_ACCOUNT_ID.
+#
+# Actions are pinned by SHA, not tag (Doctrine §16.1) — a tag is a mutable
+# pointer someone else controls, and these steps execute holding a live
+# Pages:Edit token.
+
+on:
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - run: npx --no-install playwright-core install --with-deps chromium
+
+      # THE GATES RUN BEFORE THE DEPLOY, not beside it. A deploy job that only
+      # builds will happily ship a build the gates would have rejected, and the
+      # red tick arrives on a separate workflow minutes later.
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Accessibility gate
+        run: node a11y-gate.mjs
+
+      - name: Acceptance gate
+        run: node acceptance.mjs
+
+      - name: Offline gate
+        run: node offline-check.mjs
+
+      - name: Prepare Cloudflare credentials
+        id: cf
+        env:
+          RAW_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RAW_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Strip any whitespace/newlines that sneak in when a secret is pasted.
+          # A trailing newline corrupts the Authorization header (Cloudflare 6111).
+          # This exact failure has bitten the hub; the fix is carried forward.
+          TOKEN=$(printf '%s' "$RAW_TOKEN" | tr -d '[:space:]')
+          ACCOUNT=$(printf '%s' "$RAW_ACCOUNT" | tr -d '[:space:]')
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$ACCOUNT"
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare secrets not configured yet - skipping deploy."
+          fi
+          # Doctrine §16.4: the cleaned values go to the job environment, never
+          # to step outputs. Outputs persist in the run's stored output and are
+          # readable through the API; env is scoped to this job's steps. Only
+          # the non-secret `ready` flag is an output.
+          echo "CF_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          echo "CF_ACCOUNT=$ACCOUNT" >> "$GITHUB_ENV"
+
+      - name: Ensure Pages project exists
+        if: steps.cf.outputs.ready == 'true'
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ env.CF_TOKEN }}
+          accountId: ${{ env.CF_ACCOUNT }}
+          command: pages project create photo-field-tools --production-branch=main
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.cf.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
+        with:
+          apiToken: ${{ env.CF_TOKEN }}
+          accountId: ${{ env.CF_ACCOUNT }}
+          command: pages deploy dist --project-name=photo-field-tools --branch=${{ github.ref_name }} --commit-dirty=true
+
+      - name: Where this landed, and how to roll it back
+        if: always() && steps.cf.outputs.ready == 'true'
+        run: |
+          # Doctrine §16 — the rollback path is printed on every deploy so it is
+          # known BEFORE it is needed, not looked up during an outage.
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "PRODUCTION: https://photo-field-tools.pages.dev"
+          else
+            echo "PREVIEW for branch ${{ github.ref_name }} — the URL is in the deploy step's output above."
+            echo "Doctrine §7: this is a candidate. It is promoted only on Noah's explicit say-so."
+          fi
+          echo ""
+          echo "If this deploy is bad:"
+          echo "  Cloudflare dashboard -> Workers & Pages -> photo-field-tools -> Deployments"
+          echo "  -> pick the last good one -> Manage deployment -> Rollback."
+          echo "That is instant. A git revert is also fine but waits for a fresh build,"
+          echo "and note concurrency cancel-in-progress can cancel an in-flight deploy."
+
+      - name: A service worker is cached — say what a stale build looks like
+        if: always() && steps.cf.outputs.ready == 'true'
+        run: |
+          echo "This app installs a service worker. After a deploy, an already-open"
+          echo "install keeps serving the OLD cache until it is reloaded."
+          echo "The build stamp in the header is the running version (Doctrine §7b):"
+          echo "if a screenshot shows the old number, that is a stale cache, not a"
+          echo "failed deploy. Close the app fully and reopen it."

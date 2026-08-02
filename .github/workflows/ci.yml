@@ -1,0 +1,87 @@
+name: Gates
+
+# Every gate in this repo, on every push and every pull request.
+#
+# All four EXIT NON-ZERO on failure (Doctrine §4, §16.8): a checker that prints
+# "FAIL" and exits 0 is a reporter, and the hub carries the scar from believing
+# a documented gate that never ran.
+#
+# Runs on pull_request as well as push — a PR that runs zero checks is how a
+# regression reaches main with a green tick beside it.
+#
+# Actions are pinned by SHA, not tag (Doctrine §16.1). A tag is a mutable
+# pointer someone else controls. Dependabot keeps the pins current.
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+
+      # npm ci, never npm install (Doctrine §16.1) — the lockfile is the pin.
+      - run: npm ci
+
+      # The sandbox Chromium at /opt/pw-browsers does not exist on a runner, so
+      # playwright-core downloads the revision it is pinned to. Same browser
+      # build either way; every gate detects which is present.
+      - run: npx --no-install playwright-core install --with-deps chromium
+
+      # Unit tests first: they are the cheapest and cover the math core, which
+      # everything else is built on (spec §11.8).
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Doctrine §4 — accessibility is a hard gate.
+      - name: Accessibility gate
+        run: node a11y-gate.mjs
+
+      # Spec §11 acceptance criteria.
+      - name: Acceptance gate
+        run: node acceptance.mjs
+
+      # Acceptance §11.1 and spec §10 — installs, cuts the network, reloads.
+      - name: Offline gate
+        run: node offline-check.mjs
+
+  # The palette gate is CANONICAL IN THE HUB and is never forked into this repo
+  # (PALETTES.md). It is checked out read-only and run against this app's role
+  # mapping, so a palette change here is measured by the same instrument every
+  # sibling app uses.
+  palette:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: app
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: njefferson/noahjefferson
+          path: hub
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+
+      - name: Palette gate (hub instrument, app values)
+        run: node hub/palette-check.mjs app/palettes/photo-field-tools.json

@@ -1,0 +1,27 @@
+{
+  "_readme": "photo-field-tools mapped onto the hub's PALETTES.md §1 ROLES. Run from the hub: node palette-check.mjs ../photo-field-tools/palettes/photo-field-tools.json — the gate is canonical THERE and is never forked. Values are the Instrument family from palettes/families.json, adopted unchanged; nothing here was invented, so §3's coupled-knobs problem does not arise. Token names map as: page=--page, pageAlt=--page-alt, surfaces=[--surface,--surface-2,--surface-3], rail=--rail, hairline=--hairline, text=[--txt,--txt-2,--txt-3], accents.primary=--accent, accentSoftAlpha=the alpha in --accent-soft. All declared in exactly one place, src/styles.css, per §6.",
+
+  "photo-field-tools-night": {
+    "kind": "app",
+    "page": "#1a1a1a",
+    "pageAlt": "#232323",
+    "surfaces": ["#3a3a3a", "#414141", "#484848"],
+    "rail": "rgba(255,255,255,.62)",
+    "hairline": "rgba(255,255,255,.17)",
+    "text": ["#eaeaea", "#d2d2d2", "#c1c1c1"],
+    "accents": { "primary": "#9fc2f5" },
+    "accentSoftAlpha": 0.15
+  },
+
+  "photo-field-tools-day": {
+    "kind": "app",
+    "page": "#c4bcab",
+    "pageAlt": "#ccc4b3",
+    "surfaces": ["#eee6d6", "#f4ecdd", "#faf3e5"],
+    "rail": "rgba(39,33,25,.68)",
+    "hairline": "rgba(39,33,25,.22)",
+    "text": ["#272119", "#363026", "#4a4436"],
+    "accents": { "primary": "#17458f" },
+    "accentSoftAlpha": 0.12
+  }
+}
