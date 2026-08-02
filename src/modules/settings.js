@@ -6,6 +6,7 @@
 
 import { el, div, h, p, card, groupField, empty } from '../ui/dom.js';
 import { chips, confirmDialog, openDialog } from '../ui/controls.js';
+import { BODIES, CONVERSION_CUTOFF_RANGE } from '../core/constants.js';
 import { buildExport, exportFilename, parseImport, planImport, applyImport, summariseImport } from '../store/io.js';
 import { applyTheme } from '../ui/header.js';
 import { announce } from '../ui/live.js';
@@ -20,6 +21,7 @@ export function renderSettings() {
 
   wrap.append(backupCard());
   wrap.append(preferencesCard());
+  wrap.append(convertedBodyCard());
   wrap.append(deviceCard());
   wrap.append(aboutCard());
   wrap.append(dangerCard());
@@ -207,6 +209,69 @@ function preferencesCard() {
     onSelect: (v) => { store.setSetting('theme', v); applyTheme(v); announce(`${v} theme.`); },
   }), 'Dark is the default — it suits a dark sky better. Light reads better in direct sun.'));
 
+  return box;
+}
+
+/* ------------------------------------------------------------------ *
+ * The converted body — a fact about the camera, set once
+ * ------------------------------------------------------------------ */
+
+/**
+ * What the conversion actually installed.
+ *
+ * This lives HERE, in settings, and deliberately NOT on any working screen.
+ * It is not a wavelength anybody selects per shoot — it is a property of the
+ * camera, established once when the conversion was done. The app used to put
+ * a 550–950 nm number field in the body panel, which implied the opposite and
+ * was simply wrong about the hardware.
+ */
+function convertedBodyCard() {
+  const ir = BODIES['z50-ir'];
+  const current = store.getState().conversionCutoffNm;
+  const box = card('The converted body', [
+    p('lede', 'A fact about the camera, entered once. Nothing on a working screen '
+      + 'can change it, because it is not a per-shoot decision.'),
+  ]);
+
+  box.append(el('dl', { class: 'kv' }, [
+    el('dt', { text: 'In use' }),
+    el('dd', { text: `${current ?? ir.defaultWavelengthNm} nm${current == null ? ' (profile default)' : ' (recorded)'}` }),
+  ]));
+
+  const input = el('input', {
+    type: 'number', inputMode: 'numeric',
+    value: current == null ? '' : String(current),
+    attrs: {
+      min: String(CONVERSION_CUTOFF_RANGE.min), max: String(CONVERSION_CUTOFF_RANGE.max), step: '5',
+      placeholder: `${ir.defaultWavelengthNm} — profile default`,
+      'aria-label': 'Conversion cutoff in nanometres, blank to use the profile default',
+    },
+    on: {
+      change: (e) => {
+        const raw = e.target.value.trim();
+        if (raw === '') {
+          store.setConversionCutoff(null);
+          announce(`Cleared. Using the profile default, ${ir.defaultWavelengthNm} nanometres.`);
+          return;
+        }
+        const v = Number(raw);
+        if (!Number.isFinite(v) || v < CONVERSION_CUTOFF_RANGE.min || v > CONVERSION_CUTOFF_RANGE.max) {
+          announce(`Enter a value between ${CONVERSION_CUTOFF_RANGE.min} and ${CONVERSION_CUTOFF_RANGE.max} nanometres, or leave it blank.`);
+          return;
+        }
+        store.setConversionCutoff(v);
+        announce(`Conversion recorded at ${v} nanometres.`);
+      },
+    },
+  });
+  box.append(groupField('Cutoff installed by the conversion (nm)', div('', [input]),
+    'Leave blank to use the profile default. This is what the shop fitted when the '
+    + 'IR-cut filter came out — not something to change between shots.'));
+
+  box.append(p('hint',
+    'If the conversion left NOTHING in place of the IR-cut filter — a true '
+    + 'full-spectrum body — then there is no cutoff at all and this number is the '
+    + 'wrong model for it. Say so and the body profile needs changing, not this field.'));
   return box;
 }
 

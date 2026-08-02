@@ -10,7 +10,7 @@
 
 import { el, div, span, mount, empty } from './dom.js';
 import { openDialog, select as selectControl, chips } from './controls.js';
-import { BODIES, WAVELENGTH_RANGE, COC_BASES } from '../core/constants.js';
+import { BODIES, COC_BASES } from '../core/constants.js';
 import * as store from '../store/state.js';
 import { BUILD_STAMP } from '../version.js';
 import { announce } from './live.js';
@@ -30,7 +30,7 @@ export function renderHeader(root) {
 
   const bodyBtn = el('button', {
     type: 'button', class: 'global-btn',
-    attrs: { 'aria-label': `Body: ${body.label}. Change body, wavelength and circle of confusion.` },
+    attrs: { 'aria-label': `Body: ${body.label}. Change body and circle of confusion.` },
     on: { click: openBodyPanel },
   }, [span('k', 'Body'), span('v', body.label)]);
 
@@ -80,7 +80,7 @@ function openBodyPanel() {
         value: store.getSettings().bodyId,
         onSelect: (id) => {
           store.setSetting('bodyId', id);
-          // Acceptance §11.3: the wavelength follows the body unless pinned.
+          // Acceptance §11.3: the wavelength is re-derived from the body here.
           refresh();
           announce(`${BODIES[id].label} selected. Working wavelength ${store.getSettings().wavelengthNm} nanometres.`);
         },
@@ -89,34 +89,20 @@ function openBodyPanel() {
       const bodyNote = el('p', { class: 'hint', text: '' });
       wrap.append(bodyNote);
 
-      // --- wavelength ---
-      wrap.append(el('h3', { text: 'Working wavelength', style: { marginTop: '1rem' } }));
-      const wlInput = el('input', {
-        type: 'number', inputMode: 'numeric',
-        attrs: { min: WAVELENGTH_RANGE.min, max: WAVELENGTH_RANGE.max, step: 10, 'aria-label': 'Working wavelength in nanometres' },
-        value: String(store.getSettings().wavelengthNm),
-        on: {
-          change: (e) => {
-            const v = Math.min(WAVELENGTH_RANGE.max, Math.max(WAVELENGTH_RANGE.min, Number(e.target.value)));
-            store.setSetting('wavelengthNm', v);
-            refresh();
-            announce(`Working wavelength ${v} nanometres, pinned.`);
-          },
-        },
-      });
-      wrap.append(wlInput);
-      const autoBtn = el('button', {
-        type: 'button', class: 'btn', text: 'Follow the body profile',
-        style: { marginTop: '0.5rem' },
-        on: {
-          click: () => {
-            store.setSetting('wavelengthAuto', true);
-            refresh();
-            announce(`Wavelength follows the body: ${store.getSettings().wavelengthNm} nanometres.`);
-          },
-        },
-      });
-      wrap.append(autoBtn);
+      // --- wavelength: SHOWN, NEVER SET ---
+      //
+      // This used to be a number field with a 550–950 nm range, which told the
+      // reader they choose a wavelength per shoot. They do not. What the sensor
+      // records is a fixed property of the body — for the converted one, of the
+      // conversion the shop performed, established once and never touched again.
+      // It is displayed here because acceptance §11.2 requires every result to
+      // name the wavelength that produced it, and provenance is not a control.
+      //
+      // If the conversion's cutoff ever needs correcting it is a one-time entry
+      // under Settings → This camera, not a dial on the working surface.
+      wrap.append(el('h3', { text: 'Wavelength', style: { marginTop: '1rem' } }));
+      const wlValue = el('p', { class: 'ro-inline', text: '' });
+      wrap.append(wlValue);
       const wlNote = el('p', { class: 'hint', text: '' });
       wrap.append(wlNote);
 
@@ -164,11 +150,12 @@ function openBodyPanel() {
         bodyNote.textContent = b.infrared
           ? `${b.note}. No external filter is used, and none is offered.`
           : `${b.note}.`;
-        wlInput.value = String(st.wavelengthNm);
-        wlNote.textContent = st.wavelengthAuto
-          ? `Following the body profile (${b.defaultWavelengthNm} nm).`
-          : `Pinned to ${st.wavelengthNm} nm. Other conversion cutoffs can be modelled here.`;
-        autoBtn.disabled = st.wavelengthAuto;
+        wlValue.textContent = `${st.wavelengthNm} nm`;
+        wlNote.textContent = b.infrared
+          ? 'Fixed by the conversion, not chosen per shoot. Shown because every '
+            + 'depth-of-field, diffraction and macro result names the wavelength behind it.'
+          : 'Fixed for this body. Shown because every depth-of-field, diffraction '
+            + 'and macro result names the wavelength behind it.';
         const c = COC_BASES[st.cocBasis];
         cocNote.textContent = `${c.note} — c = ${(c.mm * 1000).toFixed(3)} µm.`;
       }

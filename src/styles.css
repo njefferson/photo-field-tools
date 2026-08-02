@@ -301,6 +301,12 @@ h3 { font-size: 0.9375rem; margin: 0 0 0.35rem; }
   color: var(--txt-2); margin: 0 0 0.3rem;
 }
 .hint { font-size: 0.75rem; color: var(--txt-3); margin: 0.25rem 0 0; }
+/* A value that is READ, not set. Sized like a readout so it does not look like
+   a disabled input the reader should be able to click. */
+.ro-inline {
+  font-size: 1.35rem; font-weight: 700; line-height: 1.2;
+  font-variant-numeric: tabular-nums; margin: 0.2rem 0 0;
+}
 
 input[type="file"] {
   width: 100%;

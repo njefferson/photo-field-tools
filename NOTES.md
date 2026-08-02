@@ -131,6 +131,31 @@ the Doctrine wins where the two overlap. Freeze is one tap; release is one tap.
 Same capability, no timed gesture. **If Noah wants the hold gesture back it
 would have to be an accelerator on top of the toggle, never instead of it.**
 
+### There is no wavelength control, because nobody sets a wavelength
+Spec §2 asked for a settable 550–950 nm working wavelength "so other conversion
+cutoffs can be modelled", and the app shipped that as a number field on the
+body panel. **It was wrong about the hardware.** Noah, 2026-08-02: *"My infrared
+camera had the infrared filter removed. That's all. It is not set to any
+wavelength."*
+
+His own IR notes already said it — *"a fixed property of the camera, established
+once — never a per-shoot question"* — and the build read that and put a dial in
+anyway.
+
+Now: the wavelength is **derived** from the body profile and **displayed** as
+provenance (acceptance §11.2 requires every result to name it), and
+`setSetting('wavelengthNm')` **throws**. What the conversion fitted is a
+one-time entry under Settings → The converted body, beside the device identity
+rather than in preferences, because it is a fact about the camera and not a
+choice. `test/state.test.js` fails if the dial comes back.
+
+**STILL OPEN — needs Noah.** Whether the conversion left an IR-pass filter in
+place of the IR-cut one, or nothing at all. It changes the numbers: with a
+cutoff the diffraction limit is f/4.8, with a true full-spectrum body visible
+light dominates and it is ≈f/6.3, the same as the other body. The profile
+currently assumes a 720 nm cutoff, which is what the build spec and his IR notes
+both say. See the handoff.
+
 ### Wavelength is shown on every DoF, diffraction and macro output
 Spec §5.1 asks for the wavelength "on the IR body". Acceptance criterion §11.2
 asks for it on *every* such output. The stricter one wins, so it is always

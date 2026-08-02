@@ -32,6 +32,7 @@ export function buildExport(state, now = new Date().toISOString()) {
     stateVersion: STATE_VERSION,
     deviceId: state.deviceId,
     deviceLabel: state.deviceLabel,
+    conversionCutoffNm: state.conversionCutoffNm ?? null,
     settings: { ...state.settings },
     lenses: deepCopy(state.lenses),
     // Built-in tubes are re-seeded on load from constants, so exporting them
@@ -221,6 +222,9 @@ export function applyImport(current, incoming, plan, choices = {}) {
   // Identity and last location ride along only when this device has none —
   // same rule as settings: filling a blank overwrites nothing.
   if (incoming.deviceId && !current.deviceId) next.deviceId = incoming.deviceId;
+  if (Number.isFinite(incoming.conversionCutoffNm) && current.conversionCutoffNm == null) {
+    next.conversionCutoffNm = incoming.conversionCutoffNm;
+  }
   if (incoming.deviceLabel && current.deviceLabel === defaultState().deviceLabel) {
     next.deviceLabel = incoming.deviceLabel;
   }

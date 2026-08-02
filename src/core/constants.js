@@ -82,8 +82,17 @@ export const BODIES = {
 };
 export const DEFAULT_BODY = 'z50ii';
 
-/** Working wavelength is settable so other conversion cutoffs can be modelled. */
-export const WAVELENGTH_RANGE = { min: 550, max: 950 };
+/**
+ * Bounds for the one-time conversion-cutoff entry in Settings.
+ *
+ * NOT a per-shoot control. Spec §2 called for a settable 550–950 nm working
+ * wavelength; that was wrong about the hardware. Nobody chooses a wavelength
+ * in the field — the sensor's response is fixed by what the conversion shop
+ * fitted, and that is recorded once. Widened to 400–1100 nm because a real
+ * conversion can sit anywhere from a 590 nm "goldie" up against silicon's own
+ * cutoff near 1100 nm.
+ */
+export const CONVERSION_CUTOFF_RANGE = { min: 400, max: 1100 };
 /** The visible-light reference every IR comparison is shown against. */
 export const REFERENCE_WAVELENGTH_NM = 550;
 

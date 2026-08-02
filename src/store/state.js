@@ -36,14 +36,24 @@ export function defaultState() {
     version: STATE_VERSION,
     deviceId: null,          // assigned on first load, see ensureDeviceId
     deviceLabel: 'This device',
+    /**
+     * What the conversion shop installed, in nm. A PROPERTY OF THE CAMERA,
+     * established once and never a per-shoot question — which is why it lives
+     * out here beside the device identity rather than in `settings`, and why
+     * nothing on a working screen can change it.
+     *
+     * null means "use whatever the body profile says", which is the right
+     * answer until someone has a reason to say otherwise.
+     */
+    conversionCutoffNm: null,
     settings: {
       bodyId: DEFAULT_BODY,
       lensId: null,
       cocBasis: DEFAULT_COC_BASIS,
-      // Wavelength follows the body profile until the user overrides it, which
-      // is what "defaults from the body profile" means in spec §2.
+      // DERIVED, never chosen. Recomputed from the active body on every load
+      // and every change (see applyWavelengthPolicy). Persisted only so a
+      // reader of the stored blob sees what produced the numbers.
       wavelengthNm: BODIES[DEFAULT_BODY].defaultWavelengthNm,
-      wavelengthAuto: true,
       units: 'metric',
       theme: 'dark',              // spec §9: dark theme default
       strictness: DEFAULT_STRICTNESS,
@@ -143,14 +153,19 @@ function ensureDeviceId() {
 }
 
 /**
- * ACCEPTANCE §11.3: selecting the IR body changes the working wavelength, and
- * selecting the visible body reverts it. That only holds while the user has
- * not pinned a wavelength of their own — `wavelengthAuto` records which.
+ * ACCEPTANCE §11.3: selecting the IR body changes the working wavelength and
+ * selecting the visible body reverts it.
+ *
+ * The wavelength is DERIVED, always. There is no per-shoot override, because
+ * the sensor's response is a property of the hardware and not a decision
+ * anybody makes in the field. The only thing that can move it is the recorded
+ * conversion cutoff, which is a one-time fact about this camera.
  */
 function applyWavelengthPolicy() {
-  if (state.settings.wavelengthAuto) {
-    state.settings.wavelengthNm = activeBody().defaultWavelengthNm;
-  }
+  const body = activeBody();
+  state.settings.wavelengthNm = body.infrared && Number.isFinite(state.conversionCutoffNm)
+    ? state.conversionCutoffNm
+    : body.defaultWavelengthNm;
 }
 
 /* ------------------------------------------------------------------ *
@@ -199,14 +214,25 @@ export function update(mutator) {
 }
 
 export function setSetting(key, value) {
+  // `wavelengthNm` is derived and is not a setting anybody may write. Silently
+  // accepting the write and then having applyWavelengthPolicy stamp over it
+  // would look like a bug at the call site; refusing loudly does not.
+  if (key === 'wavelengthNm' || key === 'wavelengthAuto') {
+    throw new Error(
+      `setSetting("${key}") — the wavelength is derived from the body profile and the `
+      + 'recorded conversion cutoff. Use setConversionCutoff() if the camera itself changed.',
+    );
+  }
+  return update((s) => { s.settings[key] = value; });
+}
+
+/**
+ * Record what the conversion actually installed. A ONE-TIME fact about this
+ * camera, not a control. Pass null to fall back to the body profile's value.
+ */
+export function setConversionCutoff(nm) {
   return update((s) => {
-    s.settings[key] = value;
-    // Choosing a wavelength by hand pins it; choosing a body while pinned
-    // leaves it pinned, which is what a deliberate override should do.
-    if (key === 'wavelengthNm') s.settings.wavelengthAuto = false;
-    if (key === 'wavelengthAuto' && value === true) {
-      s.settings.wavelengthNm = (BODIES[s.settings.bodyId] || BODIES[DEFAULT_BODY]).defaultWavelengthNm;
-    }
+    s.conversionCutoffNm = Number.isFinite(nm) ? nm : null;
   });
 }
 
