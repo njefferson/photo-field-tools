@@ -19,6 +19,34 @@ the URL gets you all of that with nothing to configure.
 
 ---
 
+## STAGED AND WAITING ON NOAH
+
+**<https://staging.photo-field-tools.pages.dev>** — v0.1.0, deployed
+2026-08-02. Waiting on Noah's on-device pass (Doctrine §7). It is promoted to
+`main` only on his explicit say-so.
+
+Doctrine §7 also says to START EVERY SESSION by checking whether a candidate is
+already staged, and to surface it rather than rebuild it. This is that signal.
+
+**The Cloudflare side is already wired — do not ask Noah to set it up.**
+Verified from the deploy logs on 2026-08-02, not assumed:
+- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are present and working.
+  The credential step resolves `ready=true` and both wrangler steps actually
+  run rather than skipping.
+- The Pages project `photo-field-tools` **already existed** before the first
+  deploy — `pages project create` returns "A project with this name already
+  exists [code: 8000002]", which is why that step is `continue-on-error`.
+- Production (`photo-field-tools.pages.dev`) has had no deploy yet, because
+  nothing has landed on `main`. The hub's link tile points there, which is why
+  the hub change waits.
+
+A session cannot reach `pages.dev` from this sandbox — the proxy answers 403 to
+CONNECT for that host (Doctrine §11, and §15b: that is a fact about one host,
+not about the network). Verify a deploy by reading the workflow logs, where
+wrangler prints the deployment URL, rather than by fetching the site.
+
+---
+
 ## Current state
 
 Version **0.1.0** — first build. Every module in the spec is implemented and
