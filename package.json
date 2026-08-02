@@ -18,8 +18,9 @@
     "gate:acceptance": "node acceptance.mjs",
     "gate:offline": "node offline-check.mjs",
     "render:icons": "node render-icons.mjs",
-    "check": "npm run test && npm run build && npm run gate:a11y && npm run gate:acceptance && npm run gate:offline",
-    "render:social": "node render-social.mjs"
+    "check": "npm run test && npm run build && npm run gate:a11y && npm run gate:acceptance && npm run gate:offline && node ../noahjefferson/pin-check.mjs --repo .",
+    "render:social": "node render-social.mjs",
+    "gate:hub": "node ../noahjefferson/pin-check.mjs --repo . && node ../noahjefferson/handoff-check.mjs --repo ."
   },
   "dependencies": {
     "suncalc": "1.9.0"

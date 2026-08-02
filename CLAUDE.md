@@ -55,15 +55,23 @@ changes.
 ## Gates — all four exit non-zero
 ```
 npm run check          # everything below, in order
-npm test               # 88 unit tests over the math core, storage and I/O
+npm test               # 94 unit tests over the math core, storage, I/O and state
 npm run gate:a11y      # 13 routes × 2 themes × 2 viewports, PLUS 7 dialogs
 npm run gate:acceptance# the spec §11 acceptance criteria
 npm run gate:offline   # installs, cuts the network, reloads, walks every module
 ```
-Plus the hub's palette gate, which is canonical there and never forked:
+Plus the hub's gates, canonical there and NEVER forked here. They take
+`--repo`, so this repo is measured by the same code every sibling is:
 ```
-cd ../noahjefferson && node palette-check.mjs ../photo-field-tools/palettes/photo-field-tools.json
+cd ../noahjefferson
+node palette-check.mjs ../photo-field-tools/palettes/photo-field-tools.json
+node pin-check.mjs     --repo ../photo-field-tools   # nothing floats on a tag
+node handoff-check.mjs --repo ../photo-field-tools   # BEFORE handing over
+node lessons-check.mjs --checklist                   # the steps no script can do
 ```
+`npm run gate:hub` runs the two that take `--repo`. **Run `handoff-check.mjs`
+and `lessons-check.mjs --checklist` before writing any status message** — the
+handoff is a deliverable and LESSONS §14 is what happens without them.
 
 **The a11y gate opens the dialogs.** Roughly half this app's controls live in
 them; a resting-state sweep reports a clean bill of health it has not earned

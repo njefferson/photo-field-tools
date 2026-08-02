@@ -63,11 +63,12 @@ jobs:
       - name: Offline gate
         run: node offline-check.mjs
 
-  # The palette gate is CANONICAL IN THE HUB and is never forked into this repo
-  # (PALETTES.md). It is checked out read-only and run against this app's role
-  # mapping, so a palette change here is measured by the same instrument every
-  # sibling app uses.
-  palette:
+  # These gates are CANONICAL IN THE HUB and are never forked into this repo
+  # (PALETTES.md, and hub CLAUDE.md). The hub is checked out read-only and its
+  # instruments are pointed at this app, so a change here is measured by the
+  # same code every sibling app is measured by — four copies that drift is the
+  # exact thing this avoids.
+  doctrine:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -85,3 +86,15 @@ jobs:
 
       - name: Palette gate (hub instrument, app values)
         run: node hub/palette-check.mjs app/palettes/photo-field-tools.json
+
+      # Doctrine §16.1 / LESSONS §8 — nothing that executes floats on a tag.
+      - name: Pin gate (hub instrument)
+        run: node hub/pin-check.mjs --repo app
+
+      # LESSONS §14 — a staged candidate must be recorded with its URL and
+      # version, and no instruction may tell an iPad-first owner to go and
+      # fetch a file. The acknowledgement half cannot run in CI (there is no
+      # session to ask), so only the mechanical half is enforced here; the
+      # session runs the full thing before handing over.
+      - name: Handoff gate, mechanical half (hub instrument)
+        run: node hub/handoff-check.mjs --repo app --ack=deploy-url,evidence,attachments,manual-steps
