@@ -31,7 +31,7 @@ What runs green, headless, in this sandbox:
 
 - `npm test` — 88 unit tests over the math core, storage and import/export
 - `npm run gate:a11y` — 13 routes × 2 themes × 2 viewports, plus 7 dialogs
-- `npm run gate:acceptance` — 36 assertions over the spec §11 criteria
+- `npm run gate:acceptance` — 37 assertions over the spec §11 criteria
 - `npm run gate:offline` — 22 assertions; installs, cuts the network, reloads,
   walks every module, and confirms zero external requests ever
 - hub `palette-check.mjs` — both themes clear every hard floor
