@@ -15,7 +15,7 @@
 
 import {
   DEFAULT_BODY, DEFAULT_COC_BASIS, DEFAULT_DIFFUSER, DEFAULT_OVERLAP,
-  DEFAULT_STRICTNESS, BODIES, MEIKE_TUBES,
+  DEFAULT_STRICTNESS, BODIES, MEIKE_TUBES, CONVERSION_BAND,
 } from '../core/constants.js';
 
 const STORAGE_KEY = 'photo-field-tools/v1';
@@ -165,7 +165,21 @@ function applyWavelengthPolicy() {
   const body = activeBody();
   state.settings.wavelengthNm = body.infrared && Number.isFinite(state.conversionCutoffNm)
     ? state.conversionCutoffNm
-    : body.defaultWavelengthNm;
+    : body.defaultWavelengthNm;   // null on the IR body until measured
+}
+
+/**
+ * The working wavelength, and whether anybody actually measured it.
+ *
+ * Callers MUST branch on `measured`. The IR body's cutoff is unknown, and a
+ * module that quietly substitutes a number for null is inventing the very
+ * figure this app refuses to invent — the same rule the light meter follows
+ * when it has no calibration profile.
+ */
+export function workingWavelength() {
+  const nm = state.settings.wavelengthNm;
+  if (Number.isFinite(nm)) return { nm, mm: nm / 1e6, measured: true, band: null };
+  return { nm: null, mm: null, measured: false, band: CONVERSION_BAND };
 }
 
 /* ------------------------------------------------------------------ *
@@ -184,10 +198,7 @@ export function activeLens() {
   return state.lenses.find((l) => l.id === state.settings.lensId) || null;
 }
 
-/** Working wavelength in MILLIMETRES, which is what the optics module wants. */
-export function workingWavelengthMm() {
-  return state.settings.wavelengthNm / 1e6;
-}
+
 
 /* ------------------------------------------------------------------ *
  * Writing

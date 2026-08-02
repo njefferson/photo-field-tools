@@ -131,6 +131,28 @@ the Doctrine wins where the two overlap. Freeze is one tap; release is one tap.
 Same capability, no timed gesture. **If Noah wants the hold gesture back it
 would have to be an accelerator on top of the toggle, never instead of it.**
 
+### The IR cutoff is UNKNOWN and the app says so
+Spec §2 asserted a "720 nm conversion" and the app printed 720 nm under every
+result as though someone had measured it. Nobody had. Noah, 2026-08-02: *"I
+don't know what they put in it… there's no fucking wavelength assigned."*
+
+**What is known:** it shoots a bright red frame, so there IS an IR-pass filter
+in the conversion — a true full-spectrum sensor would not. **What is not
+known:** where it cuts.
+
+So `BODIES['z50-ir'].defaultWavelengthNm` is `null`, meaning UNMEASURED, and
+`store.workingWavelength()` returns `{measured:false, band:{590,950}}`. Every
+screen shows the band rather than a figure: the diffraction limit reads
+**f/3.6 – f/5.9**, which is 1.4 stops of spread — wider than the whole
+IR-vs-visible difference the app used to headline. Recording the real cutoff
+under Settings → The converted body collapses it to one number.
+
+This is the same rule the light meter already follows: no calibration, no
+absolute reading. `test/state.test.js` fails if a plausible default creeps back
+into the body profile.
+
+**Still needs Noah:** ask the converter what they installed, or measure it.
+
 ### There is no wavelength control, because nobody sets a wavelength
 Spec §2 asked for a settable 550–950 nm working wavelength "so other conversion
 cutoffs can be modelled", and the app shipped that as a number field on the

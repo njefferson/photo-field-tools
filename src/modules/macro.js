@@ -170,7 +170,7 @@ export function renderMacro() {
     // stricter than spec §5.8's silence and wins.
     main.append(basisLine({
       cocBasis: coc,
-      wavelengthNm: settings.wavelengthNm,
+      wavelength: store.workingWavelength(),
       model: dof.model === 'macro' ? `macro (m ≥ ${MACRO_M_THRESHOLD})` : 'general',
     }));
 

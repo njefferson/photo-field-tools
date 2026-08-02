@@ -86,14 +86,20 @@ export function readout(key, value, note, opts = {}) {
  * modules, and so a module that forgets it is visibly missing something rather
  * than quietly showing an unattributed number.
  */
-export function basisLine({ cocBasis, wavelengthNm, model, extra }) {
+export function basisLine({ cocBasis, wavelength, model, extra }) {
   const bits = [];
   const line = div('basis');
   line.append('Circle of confusion: ');
   line.append(el('b', { text: `${cocBasis.label} (${(cocBasis.mm * 1000).toFixed(3)} µm)` }));
-  if (wavelengthNm != null) {
+  if (wavelength) {
     line.append(' · Wavelength: ');
-    line.append(el('b', { text: `${wavelengthNm} nm` }));
+    // An UNMEASURED cutoff is reported as unmeasured, with the band it could
+    // sit in. Acceptance §11.2 asks every result to name the wavelength behind
+    // it; "not measured, somewhere in 590–950 nm" names it truthfully, and a
+    // confident "720 nm" nobody checked does not.
+    line.append(wavelength.measured
+      ? el('b', { text: `${wavelength.nm} nm` })
+      : el('b', { text: `not measured (${wavelength.band.min}–${wavelength.band.max} nm)` }));
   }
   if (model) {
     line.append(' · Model: ');

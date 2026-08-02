@@ -64,58 +64,59 @@ function comparisonCard() {
   function compute() {
     const settings = store.getSettings();
     const coc = COC_BASES[settings.cocBasis];
-    const workingNm = settings.wavelengthNm;
-    const workingMm = workingNm / 1e6;
+    const wl = store.workingWavelength();
     const refMm = REFERENCE_WAVELENGTH_NM / 1e6;
 
     const dof = depthOfField({ focalMm, fNumber, cocMm: coc.mm, focusMm });
-    const limitIr = diffractionLimit(coc.mm, workingMm);
     const limitVis = diffractionLimit(coc.mm, refMm);
-    const shift = diffractionShift(refMm, workingMm);
-
-    // The DoF achievable AT each wavelength's own diffraction limit — this is
-    // the number that actually differs, and it is the useful comparison.
-    const dofIr = depthOfField({ focalMm, fNumber: limitIr, cocMm: coc.mm, focusMm });
-    const dofVis = depthOfField({ focalMm, fNumber: limitVis, cocMm: coc.mm, focusMm });
 
     while (out.firstChild) out.removeChild(out.firstChild);
 
     out.append(el('h3', { text: 'Diffraction limit' }));
-    out.append(div('readout', [
-      readout(`${workingNm} nm`, formatFNumber(round(limitIr, 1)), 'this body'),
-      readout(`${REFERENCE_WAVELENGTH_NM} nm`, formatFNumber(round(limitVis, 1)), 'visible reference'),
-      readout('Difference', `${round(shift.ratio, 3)}×`,
-        `${round(Math.abs(shift.stopsEarlier), 2)} stops earlier`, { small: true }),
-    ]));
-    out.append(caveat('Derived, not measured.', shift.why));
+
+    if (wl.measured) {
+      const limitIr = diffractionLimit(coc.mm, wl.mm);
+      const shift = diffractionShift(refMm, wl.mm);
+      out.append(div('readout', [
+        readout(`${wl.nm} nm`, formatFNumber(round(limitIr, 1)), 'this body, measured cutoff'),
+        readout(`${REFERENCE_WAVELENGTH_NM} nm`, formatFNumber(round(limitVis, 1)), 'visible reference'),
+        readout('Difference', `${round(shift.ratio, 3)}×`,
+          `${round(Math.abs(shift.stopsEarlier), 2)} stops earlier`, { small: true }),
+      ]));
+      out.append(caveat('Derived, not measured.', shift.why));
+    } else {
+      // NO CUTOFF RECORDED. The spread across plausible conversions is wider
+      // than the IR-vs-visible difference itself, so quoting either would be
+      // precision this app has not earned.
+      const limLo = diffractionLimit(coc.mm, wl.band.min / 1e6);
+      const limHi = diffractionLimit(coc.mm, wl.band.max / 1e6);
+      out.append(div('readout', [
+        readout('This body', `f/${round(limHi, 1)} – f/${round(limLo, 1)}`, 'cutoff not measured'),
+        readout(`${REFERENCE_WAVELENGTH_NM} nm`, formatFNumber(round(limitVis, 1)), 'visible reference'),
+      ]));
+      out.append(caveat('The cutoff of this conversion is not known.',
+        `It shoots a bright red frame, so there is an IR-pass filter in there — a `
+        + `full-spectrum sensor would not. Where it cuts was never recorded, and a `
+        + `conversion can sit anywhere from about ${wl.band.min} to ${wl.band.max} nm. `
+        + `Across that band the limit runs f/${round(limLo, 1)} to f/${round(limHi, 1)}, which is `
+        + `${round(2 * Math.log2(limLo / limHi), 1)} stops of spread — wider than the whole `
+        + `difference from visible light. Ask the converter, or measure it, then record it `
+        + `under Settings → The converted body.`));
+    }
 
     out.append(el('h3', { text: 'Depth of field', style: { marginTop: '1rem' } }));
     out.append(div('readout', [
       readout(`At ${formatFNumber(fNumber)}`,
         dof.total === Infinity ? '∞' : formatDistance(dof.total, settings.units),
-        'identical at both wavelengths'),
+        'the same at any wavelength'),
     ]));
-    // Stated plainly rather than shown as two identical columns implying a
-    // difference that does not exist. Both CoC bases are wavelength-independent,
-    // so the DoF formula returns the same answer at 720 nm as at 550 nm; what
-    // actually changes is how far you can stop down before diffraction takes
-    // the sharpness back.
     out.append(caveat('Depth of field does not change with wavelength.',
       'Both circle-of-confusion bases are defined by the sensor, not by the light, '
-      + 'so the depth-of-field formula returns the same answer at either wavelength. '
-      + 'What changes is the useful aperture range — the comparison below is the '
-      + 'one that carries a real difference.'));
+      + 'so the depth-of-field formula returns the same answer whatever the cutoff. '
+      + 'What the cutoff changes is how far you can stop down before diffraction '
+      + 'takes the sharpness back — which is the comparison above.'));
 
-    out.append(div('readout', [
-      readout(`Depth at f/${round(limitIr, 1)}`,
-        dofIr.total === Infinity ? '∞' : formatDistance(dofIr.total, settings.units),
-        `most you can get at ${workingNm} nm before diffraction dominates`),
-      readout(`Depth at f/${round(limitVis, 1)}`,
-        dofVis.total === Infinity ? '∞' : formatDistance(dofVis.total, settings.units),
-        `the same lens in visible light`),
-    ]));
-
-    out.append(basisLine({ cocBasis: coc, wavelengthNm: workingNm, model: dof.model }));
+    out.append(basisLine({ cocBasis: coc, wavelength: wl, model: dof.model }));
   }
 
   rebuild();

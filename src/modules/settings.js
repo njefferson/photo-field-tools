@@ -6,7 +6,7 @@
 
 import { el, div, h, p, card, groupField, empty } from '../ui/dom.js';
 import { chips, confirmDialog, openDialog } from '../ui/controls.js';
-import { BODIES, CONVERSION_CUTOFF_RANGE } from '../core/constants.js';
+import { CONVERSION_CUTOFF_RANGE, CONVERSION_BAND } from '../core/constants.js';
 import { buildExport, exportFilename, parseImport, planImport, applyImport, summariseImport } from '../store/io.js';
 import { applyTheme } from '../ui/header.js';
 import { announce } from '../ui/live.js';
@@ -226,7 +226,6 @@ function preferencesCard() {
  * was simply wrong about the hardware.
  */
 function convertedBodyCard() {
-  const ir = BODIES['z50-ir'];
   const current = store.getState().conversionCutoffNm;
   const box = card('The converted body', [
     p('lede', 'A fact about the camera, entered once. Nothing on a working screen '
@@ -234,8 +233,12 @@ function convertedBodyCard() {
   ]);
 
   box.append(el('dl', { class: 'kv' }, [
-    el('dt', { text: 'In use' }),
-    el('dd', { text: `${current ?? ir.defaultWavelengthNm} nm${current == null ? ' (profile default)' : ' (recorded)'}` }),
+    el('dt', { text: 'Cutoff' }),
+    el('dd', {
+      text: current == null
+        ? `not measured — results show the ${CONVERSION_BAND.min}–${CONVERSION_BAND.max} nm band`
+        : `${current} nm (recorded)`,
+    }),
   ]));
 
   const input = el('input', {
@@ -243,7 +246,7 @@ function convertedBodyCard() {
     value: current == null ? '' : String(current),
     attrs: {
       min: String(CONVERSION_CUTOFF_RANGE.min), max: String(CONVERSION_CUTOFF_RANGE.max), step: '5',
-      placeholder: `${ir.defaultWavelengthNm} — profile default`,
+      placeholder: 'not measured',
       'aria-label': 'Conversion cutoff in nanometres, blank to use the profile default',
     },
     on: {
@@ -251,7 +254,7 @@ function convertedBodyCard() {
         const raw = e.target.value.trim();
         if (raw === '') {
           store.setConversionCutoff(null);
-          announce(`Cleared. Using the profile default, ${ir.defaultWavelengthNm} nanometres.`);
+          announce('Cleared. Results will show the unmeasured band again.');
           return;
         }
         const v = Number(raw);
@@ -265,13 +268,15 @@ function convertedBodyCard() {
     },
   });
   box.append(groupField('Cutoff installed by the conversion (nm)', div('', [input]),
-    'Leave blank to use the profile default. This is what the shop fitted when the '
-    + 'IR-cut filter came out — not something to change between shots.'));
+    'Leave blank and the app says "not measured" everywhere rather than inventing '
+    + 'a figure. This is what the shop fitted when the IR-cut filter came out — '
+    + 'not something to change between shots.'));
 
   box.append(p('hint',
-    'If the conversion left NOTHING in place of the IR-cut filter — a true '
-    + 'full-spectrum body — then there is no cutoff at all and this number is the '
-    + 'wrong model for it. Say so and the body profile needs changing, not this field.'));
+    'The camera shoots a bright red frame, so an IR-pass filter is in there; a true '
+    + 'full-spectrum sensor would not. What nobody has recorded is where it cuts. '
+    + 'Ask the converter, or measure it against a known filter, and every diffraction '
+    + 'number in the app stops being a range.'));
   return box;
 }
 

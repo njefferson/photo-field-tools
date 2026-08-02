@@ -47,11 +47,15 @@ test('circle of confusion has both bases and defaults to pixel-pitch', () => {
   assert.ok(COC_BASES.traditional.mm / COC_BASES.pixel.mm > 2, 'bases differ by more than 2×');
 });
 
-test('both body profiles exist and differ ONLY in label and IR flag', () => {
+test('the visible body has a wavelength; the IR body has an UNMEASURED cutoff', () => {
   assert.equal(BODIES['z50ii'].infrared, false);
   assert.equal(BODIES['z50ii'].defaultWavelengthNm, 550);
   assert.equal(BODIES['z50-ir'].infrared, true);
-  assert.equal(BODIES['z50-ir'].defaultWavelengthNm, 720);
+  // The conversion's cutoff was never recorded. The spec asserted 720 nm and
+  // the app printed it under every result as measured fact; it was not.
+  // Noah, 2026-08-02: "I don't know what they put in it… there's no fucking
+  // wavelength assigned." null means unmeasured, and nothing may substitute.
+  assert.equal(BODIES['z50-ir'].defaultWavelengthNm, null);
 });
 
 test('acceptance §11.10 — no body profile offers an external IR filter', () => {

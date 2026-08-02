@@ -69,7 +69,7 @@ export function renderDof() {
     // screenshot from either one self-describing.
     body_.append(basisLine({
       cocBasis: coc,
-      wavelengthNm: settings.wavelengthNm,
+      wavelength: store.workingWavelength(),
       model: r.model === 'macro' ? 'macro (m ≥ 0.1)' : 'general',
     }));
 

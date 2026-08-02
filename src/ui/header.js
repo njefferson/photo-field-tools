@@ -49,9 +49,15 @@ export function renderHeader(root) {
   // The IR flag is a standing indicator: §3 requires a mode to announce itself
   // rather than silently changing what the numbers mean.
   if (body.infrared) {
+    const wl = store.workingWavelength();
     inner.append(el('span', {
-      class: 'ir-flag', text: `IR ${s.wavelengthNm} nm`,
-      attrs: { 'aria-label': `Infrared body active, working wavelength ${s.wavelengthNm} nanometres` },
+      class: 'ir-flag',
+      text: wl.measured ? `IR ${wl.nm} nm` : 'IR · cutoff ?',
+      attrs: {
+        'aria-label': wl.measured
+          ? `Infrared body active, measured cutoff ${wl.nm} nanometres`
+          : 'Infrared body active, conversion cutoff not measured',
+      },
     }));
   }
 
@@ -150,10 +156,16 @@ function openBodyPanel() {
         bodyNote.textContent = b.infrared
           ? `${b.note}. No external filter is used, and none is offered.`
           : `${b.note}.`;
-        wlValue.textContent = `${st.wavelengthNm} nm`;
+        const wl = store.workingWavelength();
+        wlValue.textContent = wl.measured
+          ? `${wl.nm} nm`
+          : `not measured — ${wl.band.min}–${wl.band.max} nm`;
         wlNote.textContent = b.infrared
-          ? 'Fixed by the conversion, not chosen per shoot. Shown because every '
-            + 'depth-of-field, diffraction and macro result names the wavelength behind it.'
+          ? (wl.measured
+            ? 'The cutoff you recorded for this conversion. Fixed by the hardware, not chosen per shoot.'
+            : 'Nobody has measured what this conversion cuts at, so the app will not pretend to know. '
+              + 'Results show the whole band it could be. Record it under Settings → The converted body '
+              + 'and every number sharpens.')
           : 'Fixed for this body. Shown because every depth-of-field, diffraction '
             + 'and macro result names the wavelength behind it.';
         const c = COC_BASES[st.cocBasis];

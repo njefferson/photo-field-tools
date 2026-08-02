@@ -73,7 +73,8 @@ const seedWithLens = (bodyId = 'z50-ir') => ({
   deviceLabel: 'Test device',
   settings: {
     bodyId, lensId: 'lens-1', cocBasis: 'pixel',
-    wavelengthNm: bodyId === 'z50-ir' ? 720 : 550, wavelengthAuto: true,
+    // Not seeded: the wavelength is derived from the body on load, and the IR
+    // body's cutoff is unmeasured until somebody records one.
     units: 'metric', theme: 'dark', strictness: 2, overlap: 0.25,
     diffuser: 'flat', meterAverageFrames: 8, lastModule: null,
   },
@@ -146,15 +147,25 @@ try {
     const reverted = await readDiffraction(page);
 
     check('§11.3', visible.wavelength === 550,
-      'visible body works at 550 nm', `visible body reported ${visible.wavelength} nm`);
-    check('§11.3', infrared.wavelength === 720,
-      'IR body switches to 720 nm', `IR body reported ${infrared.wavelength} nm`);
-    check('§11.3', infrared.limit != null && visible.limit != null && infrared.limit < visible.limit,
-      `diffraction limit tightens f/${visible.limit} → f/${infrared.limit}`,
-      `diffraction limit did not tighten (${visible.limit} → ${infrared.limit})`);
+      'visible body works at a known 550 nm', `visible body reported ${visible.wavelength} nm`);
+
+    // THE IR CUTOFF IS UNMEASURED. Selecting the IR body still CHANGES the
+    // wavelength — from a known number to an explicit unknown — and still
+    // changes the diffraction limit, from one figure to the band it could sit
+    // in. What it must NOT do is produce a confident number nobody measured.
+    check('§11.3', infrared.wavelength === null && /not measured/i.test(infrared.wavelengthText),
+      'IR body reports its cutoff as NOT MEASURED rather than inventing one',
+      `IR body reported "${infrared.wavelengthText}"`);
+    check('§11.3', infrared.limits.length === 2,
+      `IR diffraction limit is a range, f/${infrared.limits.join(' – f/')}`,
+      `IR limit was not a range: ${JSON.stringify(infrared.limits)}`);
+    check('§11.3', infrared.limits.length === 2 && infrared.limits[0] < visible.limit,
+      'the range brackets a tighter limit than visible light',
+      `range ${JSON.stringify(infrared.limits)} vs visible f/${visible.limit}`);
+
     check('§11.3', reverted.wavelength === 550 && reverted.limit === visible.limit,
       'selecting the visible body reverts both',
-      `reverting gave ${reverted.wavelength} nm / f/${reverted.limit}`);
+      `reverting gave ${reverted.wavelengthText} / f/${reverted.limit}`);
 
     if (errors.length) fail('§11.3', `page errors: ${errors.join(' | ')}`);
     await context.close();
@@ -469,11 +480,16 @@ try {
 async function readDiffraction(page) {
   return page.evaluate(() => {
     const text = document.getElementById('main').textContent;
+    const basis = /Wavelength:\s*([^·\n]+)/.exec(text);
     const wl = /Wavelength:\s*(\d+)\s*nm/.exec(text);
-    const lim = /Diffraction-limited\s*f\/([\d.]+)/.exec(text);
+    // The unmeasured branch prints a range: "f/3.6 – f/5.9".
+    const range = /Diffraction-limited\s*f\/([\d.]+)\s*[–-]\s*f\/([\d.]+)/.exec(text);
+    const single = /Diffraction-limited\s*f\/([\d.]+)/.exec(text);
     return {
       wavelength: wl ? Number(wl[1]) : null,
-      limit: lim ? Number(lim[1]) : null,
+      wavelengthText: basis ? basis[1].trim() : '(none)',
+      limit: range ? null : (single ? Number(single[1]) : null),
+      limits: range ? [Number(range[1]), Number(range[2])] : [],
     };
   });
 }

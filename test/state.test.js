@@ -36,10 +36,31 @@ test('the wavelength cannot be set — the write is REFUSED, not ignored', () =>
 
 test('acceptance §11.3 — the wavelength follows the body, both ways', () => {
   assert.equal(store.getSettings().wavelengthNm, 550);
+  assert.equal(store.workingWavelength().measured, true);
+
   store.setSetting('bodyId', 'z50-ir');
-  assert.equal(store.getSettings().wavelengthNm, 720);
+  // THE IR CUTOFF IS UNMEASURED and the app must not invent one. Noah,
+  // 2026-08-02: "I don't know what they put in it… there's no fucking
+  // wavelength assigned." Selecting the IR body still CHANGES the wavelength —
+  // from a known 550 to an explicit unknown — which is what §11.3 asks.
+  assert.equal(store.getSettings().wavelengthNm, null);
+  const wl = store.workingWavelength();
+  assert.equal(wl.measured, false);
+  assert.deepEqual(wl.band, { min: 590, max: 950 });
+
   store.setSetting('bodyId', 'z50ii');
   assert.equal(store.getSettings().wavelengthNm, 550, 'selecting the visible body reverts it');
+  assert.equal(store.workingWavelength().measured, true);
+});
+
+test('the IR body never invents a cutoff', () => {
+  store.setSetting('bodyId', 'z50-ir');
+  const wl = store.workingWavelength();
+  assert.equal(wl.nm, null, 'no number');
+  assert.equal(wl.mm, null, 'and nothing downstream can silently use one');
+  // Guards against the specific regression: a plausible default creeping back
+  // into the body profile because some module wanted a number to compute with.
+  assert.equal(BODIES['z50-ir'].defaultWavelengthNm, null);
 });
 
 test('a recorded conversion cutoff moves the IR body, and only the IR body', () => {
@@ -53,13 +74,15 @@ test('a recorded conversion cutoff moves the IR body, and only the IR body', () 
     'the visible body is unaffected — it has no conversion');
 });
 
-test('clearing the cutoff falls back to the body profile', () => {
+test('clearing the cutoff returns to unmeasured, not to a guess', () => {
   store.setConversionCutoff(830);
   store.setSetting('bodyId', 'z50-ir');
   assert.equal(store.getSettings().wavelengthNm, 830);
+  assert.equal(store.workingWavelength().measured, true);
 
   store.setConversionCutoff(null);
-  assert.equal(store.getSettings().wavelengthNm, BODIES['z50-ir'].defaultWavelengthNm);
+  assert.equal(store.getSettings().wavelengthNm, null);
+  assert.equal(store.workingWavelength().measured, false);
 });
 
 test('a junk cutoff clears rather than poisoning the wavelength', () => {
@@ -67,7 +90,7 @@ test('a junk cutoff clears rather than poisoning the wavelength', () => {
   for (const junk of [NaN, Infinity, 'eight hundred', null, undefined]) {
     store.setConversionCutoff(junk);
     assert.equal(store.getState().conversionCutoffNm, null, `${String(junk)} must not be stored`);
-    assert.equal(store.getSettings().wavelengthNm, 720, 'falls back to the profile default');
+    assert.equal(store.getSettings().wavelengthNm, null, 'falls back to unmeasured, never to a number');
   }
 });
 

@@ -60,9 +60,20 @@ export const DEFAULT_COC_BASIS = 'pixel';
 /**
  * Body profiles. Spec §2: they differ ONLY in label and IR flag.
  *
- * NOTE THE ABSENCE: there is no filter field, and there must never be one.
- * The IR body is internally converted at 720 nm and no external filter is ever
- * used (spec §2, acceptance criterion 10).
+ * NOTE THE ABSENCE: there is no filter field, and there must never be one
+ * (acceptance criterion 10).
+ *
+ * THE IR BODY'S CUTOFF IS UNKNOWN AND THE APP SAYS SO. Spec §2 asserted a
+ * "720 nm conversion" and the app printed 720 nm under every result as though
+ * somebody had measured it. Nobody had. Noah, 2026-08-02: *"I don't know what
+ * they put in it… there's no fucking wavelength assigned."*
+ *
+ * What IS known: it shoots a bright red frame, so there is an IR-pass filter
+ * in there — a true full-spectrum sensor would not. What is not known is where
+ * it cuts. So `defaultWavelengthNm: null` means UNMEASURED, and every screen
+ * that needs a wavelength shows the whole band it could be, exactly as the
+ * light meter shows relative stops until it is calibrated. Record the real
+ * figure under Settings → The converted body and everything sharpens up.
  */
 export const BODIES = {
   'z50ii': {
@@ -76,10 +87,17 @@ export const BODIES = {
     id: 'z50-ir',
     label: 'Z50 (IR converted)',
     infrared: true,
-    defaultWavelengthNm: 720,
-    note: 'Internal 720 nm conversion — no external filter',
+    defaultWavelengthNm: null,      // unmeasured — never guess it
+    note: 'Internally converted. Cutoff unknown until measured.',
   },
 };
+
+/**
+ * The span of cutoffs commercially installed conversions actually use, from a
+ * "goldie" up to deep IR. Used ONLY to show the range a result could fall in
+ * while the real cutoff is unmeasured — never to pick a value from.
+ */
+export const CONVERSION_BAND = { min: 590, max: 950 };
 export const DEFAULT_BODY = 'z50ii';
 
 /**

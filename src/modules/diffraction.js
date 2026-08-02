@@ -4,6 +4,12 @@
 // against the active CoC, with the limit f-number called out. Renders both
 // 550 nm and the body's working wavelength side by side when the IR body is
 // active."
+//
+// WHEN THE CUTOFF IS UNMEASURED there is no single working wavelength to sweep
+// at, so this shows the BAND — the limit at each end of the range a conversion
+// could plausibly sit in — and refuses to print one figure. Same rule as the
+// light meter with no calibration profile: a number nobody measured does not
+// get displayed as though somebody had.
 
 import { el, div, h, p, card, readout, basisLine, caveat } from '../ui/dom.js';
 import { COC_BASES, F_NUMBERS, REFERENCE_WAVELENGTH_NM } from '../core/constants.js';
@@ -11,15 +17,13 @@ import { diffractionSweep, diffractionLimit, airyDiameter, diffractionShift } fr
 import { formatFine, round } from '../core/units.js';
 import * as store from '../store/state.js';
 
-const SWEEP_F = F_NUMBERS.filter((f) => f >= 2.8 && f <= 22 && Number.isInteger(f * 10) )
-  .filter((f) => [2.8, 4, 5.6, 8, 11, 16, 22].includes(f));
+const SWEEP_F = [2.8, 4, 5.6, 8, 11, 16, 22];
 
 export function renderDiffraction() {
   const settings = store.getSettings();
   const body = store.activeBody();
   const coc = COC_BASES[settings.cocBasis];
-  const workingNm = settings.wavelengthNm;
-  const workingMm = workingNm / 1e6;
+  const wl = store.workingWavelength();
   const refMm = REFERENCE_WAVELENGTH_NM / 1e6;
 
   const wrap = div('');
@@ -28,43 +32,55 @@ export function renderDiffraction() {
     'Where the Airy disk grows past the circle of confusion, stopping down '
     + 'costs more sharpness than the extra depth of field returns.'));
 
-  const limitWorking = diffractionLimit(coc.mm, workingMm);
+  if (wl.measured) {
+    /* ---------------- a known wavelength: one answer ---------------- */
+    const workingMm = wl.mm;
+    const limit = diffractionLimit(coc.mm, workingMm);
 
-  const summary = card('Limit', [
-    div('readout', [
-      readout('Diffraction-limited', `f/${round(limitWorking, 1)}`,
-        `at ${workingNm} nm on the ${coc.label} basis`),
-      readout('Airy disk there', formatFine(airyDiameter(workingMm, limitWorking)),
-        `equals c = ${(coc.mm * 1000).toFixed(3)} µm`, { small: true }),
-    ]),
-  ]);
-  summary.append(basisLine({ cocBasis: coc, wavelengthNm: workingNm }));
-  wrap.append(summary);
-
-  // Spec §5.4: BOTH wavelengths side by side when the IR body is active.
-  if (body.infrared) {
-    const limitRef = diffractionLimit(coc.mm, refMm);
-    const shift = diffractionShift(refMm, workingMm);
-    const cmp = card('Against visible light', [
+    const summary = card('Limit', [
       div('readout', [
-        readout(`${REFERENCE_WAVELENGTH_NM} nm`, `f/${round(limitRef, 1)}`, 'visible reference'),
-        readout(`${workingNm} nm`, `f/${round(limitWorking, 1)}`, 'this body'),
-        readout('Ratio', `${round(shift.ratio, 3)}×`,
-          `${round(Math.abs(shift.stopsEarlier), 2)} stops earlier`, { small: true }),
+        readout('Diffraction-limited', `f/${round(limit, 1)}`,
+          `at ${wl.nm} nm on the ${coc.label} basis`),
+        readout('Airy disk there', formatFine(airyDiameter(workingMm, limit)),
+          `equals c = ${(coc.mm * 1000).toFixed(3)} µm`, { small: true }),
       ]),
     ]);
-    // Spec §4 requires this to be labelled as derived and unverified. The
-    // number is computed live rather than quoted, so it can never drift from
-    // the wavelengths actually in use.
-    cmp.append(caveat('Derived, not measured.',
-      `The ratio is ${REFERENCE_WAVELENGTH_NM}/${workingNm} = ${round(shift.ratio, 3)}, `
-      + 'derived from the wavelength scaling alone. It has NOT been verified '
-      + 'against measurement on this equipment.'));
-    wrap.append(cmp);
-  }
+    summary.append(basisLine({ cocBasis: coc, wavelength: wl }));
+    wrap.append(summary);
 
-  wrap.append(sweepCard(`Sweep at ${workingNm} nm`, workingMm, coc, limitWorking));
-  if (body.infrared) {
+    if (body.infrared) wrap.append(irComparison(coc, workingMm, refMm, wl.nm));
+    wrap.append(sweepCard(`Sweep at ${wl.nm} nm`, workingMm, coc, limit));
+    if (body.infrared) {
+      wrap.append(sweepCard(`Sweep at ${REFERENCE_WAVELENGTH_NM} nm (visible reference)`,
+        refMm, coc, diffractionLimit(coc.mm, refMm)));
+    }
+  } else {
+    /* ---------------- unmeasured: a band, not a number ---------------- */
+    const loMm = wl.band.min / 1e6;   // shortest cutoff → LARGEST limit f-number
+    const hiMm = wl.band.max / 1e6;   // longest cutoff  → smallest limit
+    const limitLo = diffractionLimit(coc.mm, loMm);
+    const limitHi = diffractionLimit(coc.mm, hiMm);
+
+    const summary = card('Limit', [
+      div('readout', [
+        readout('Diffraction-limited', `f/${round(limitHi, 1)} – f/${round(limitLo, 1)}`,
+          `somewhere in this range — the cutoff is not measured`),
+      ]),
+    ]);
+    summary.append(basisLine({ cocBasis: coc, wavelength: wl }));
+    // The honest headline: the uncertainty inside the IR figure is wider than
+    // the whole IR-vs-visible difference, so a single number here would be
+    // precision this app does not have.
+    summary.append(caveat('No single answer, because nobody measured the cutoff.',
+      `A conversion can cut anywhere from about ${wl.band.min} to ${wl.band.max} nm, and the `
+      + `limit moves with it — f/${round(limitLo, 1)} at the short end, f/${round(limitHi, 1)} at `
+      + `the long one. That is ${round(2 * Math.log2(limitLo / limitHi), 1)} stops of spread. `
+      + 'Record what the shop installed under Settings → The converted body and this '
+      + 'becomes one number.'));
+    wrap.append(summary);
+
+    wrap.append(sweepCard(`Sweep at ${wl.band.min} nm — the shortest cutoff`, loMm, coc, limitLo));
+    wrap.append(sweepCard(`Sweep at ${wl.band.max} nm — the longest`, hiMm, coc, limitHi));
     wrap.append(sweepCard(`Sweep at ${REFERENCE_WAVELENGTH_NM} nm (visible reference)`,
       refMm, coc, diffractionLimit(coc.mm, refMm)));
   }
@@ -78,6 +94,29 @@ export function renderDiffraction() {
   ]));
 
   return wrap;
+}
+
+/** Spec §5.4: both wavelengths side by side when the IR body is active. */
+function irComparison(coc, workingMm, refMm, workingNm) {
+  const limitRef = diffractionLimit(coc.mm, refMm);
+  const limitWorking = diffractionLimit(coc.mm, workingMm);
+  const shift = diffractionShift(refMm, workingMm);
+
+  const cmp = card('Against visible light', [
+    div('readout', [
+      readout(`${REFERENCE_WAVELENGTH_NM} nm`, `f/${round(limitRef, 1)}`, 'visible reference'),
+      readout(`${workingNm} nm`, `f/${round(limitWorking, 1)}`, 'this body'),
+      readout('Ratio', `${round(shift.ratio, 3)}×`,
+        `${round(Math.abs(shift.stopsEarlier), 2)} stops earlier`, { small: true }),
+    ]),
+  ]);
+  // Spec §4 requires this labelled derived and unverified. Computed live from
+  // the wavelengths in use, so it can never drift from them.
+  cmp.append(caveat('Derived, not measured.',
+    `The ratio is ${REFERENCE_WAVELENGTH_NM}/${workingNm} = ${round(shift.ratio, 3)}, `
+    + 'derived from the wavelength scaling alone. It has NOT been verified '
+    + 'against measurement on this equipment.'));
+  return cmp;
 }
 
 function sweepCard(title, wavelengthMm, coc, limit) {
@@ -110,9 +149,8 @@ function sweepCard(title, wavelengthMm, coc, limit) {
   }
   list.setAttribute('role', 'list');
 
-  const c = card(title, [
+  return card(title, [
     list,
     p('hint', `Limit f/${round(limit, 1)} — the largest f-number whose Airy disk still fits inside c.`),
   ]);
-  return c;
 }
