@@ -78,6 +78,17 @@ jobs:
           path: app
           persist-credentials: false
 
+      # No `ref:` — this DELIBERATELY tracks the hub's default branch, and it
+      # is the one place §16.1's "pin what executes" is knowingly not applied.
+      # Pinning it to a SHA would give each sibling its own frozen copy of the
+      # instruments, which is the drift this whole arrangement exists to
+      # prevent. Do not "fix" it.
+      #
+      # The cost is real and it has already been paid once: an instrument used
+      # here must be ON HUB MAIN before this job can pass. Adding a step that
+      # calls a new hub script, while that script sits on a hub working branch,
+      # makes this job fail with MODULE_NOT_FOUND until the hub lands — it went
+      # red for three runs that way (LESSONS §7b). Land the hub side first.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: njefferson/noahjefferson
