@@ -18,9 +18,10 @@
     "gate:acceptance": "node acceptance.mjs",
     "gate:offline": "node offline-check.mjs",
     "render:icons": "node render-icons.mjs",
-    "check": "npm run test && npm run build && npm run gate:a11y && npm run gate:acceptance && npm run gate:offline && node ../noahjefferson/pin-check.mjs --repo .",
+    "check": "npm run test && npm run build && npm run gate:a11y && npm run gate:acceptance && npm run gate:offline && node ../noahjefferson/pin-check.mjs --repo . && npm run --silent gate:security",
     "render:social": "node render-social.mjs",
-    "gate:hub": "node ../noahjefferson/pin-check.mjs --repo . && node ../noahjefferson/handoff-check.mjs --repo ."
+    "gate:hub": "node ../noahjefferson/pin-check.mjs --repo . && npm run --silent gate:security && node ../noahjefferson/handoff-check.mjs --repo .",
+    "gate:security": "test -x ../noahjefferson/.zizmor/bin/zizmor || { echo \"zizmor is not installed. Run: (cd ../noahjefferson && npm run security:install)\"; exit 1; }; ../noahjefferson/.zizmor/bin/zizmor --offline --strict-collection --min-severity medium .github/workflows/"
   },
   "dependencies": {
     "suncalc": "1.9.0"

@@ -97,11 +97,27 @@ jobs:
       # project had hand-written, while a bespoke checker sat beside them
       # finding nothing. Standard tooling first; hand-rolled only where nothing
       # standard exists.
-      - name: Install zizmor
-        run: pipx install zizmor || pip install zizmor
+      # The zizmor VERSION is canonical in the hub too, pinned by version and
+      # hash in hub/.github/requirements-ci.txt, so every sibling repo is
+      # audited by the same build of the same auditor. `pip install zizmor`
+      # was here until it was noticed that it floats on whatever PyPI serves
+      # that morning — an unpinned tool fetch inside the workflow that enforces
+      # pinning (§16.1). --require-hashes rejects a swapped artefact;
+      # --only-binary stops a silent fall back to a source build.
+      - name: Install zizmor (pinned in the hub)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/zizmor"
+          "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --only-binary=:all: \
+            --require-hashes -r hub/.github/requirements-ci.txt
 
+      # --strict-collection turns an unparseable workflow into a FAILURE.
+      # Without it zizmor warns, SKIPS the file and still exits 0 — a YAML
+      # error means that workflow is never audited and the run still prints
+      # "No findings. Good job!".
       - name: Workflow security audit
-        run: zizmor --offline --min-severity medium app/.github/workflows/
+        run: |
+          "$RUNNER_TEMP/zizmor/bin/zizmor" --offline --strict-collection \
+            --min-severity medium app/.github/workflows/
 
       # What zizmor does NOT cover: npm hygiene. Lockfile present, `npm ci`
       # rather than `npm install`, no undeclared dependencies (Doctrine §16.3).

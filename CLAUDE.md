@@ -69,7 +69,14 @@ node pin-check.mjs     --repo ../photo-field-tools   # nothing floats on a tag
 node handoff-check.mjs --repo ../photo-field-tools   # BEFORE handing over
 node lessons-check.mjs --checklist                   # the steps no script can do
 ```
-`npm run gate:hub` runs the two that take `--repo`. **Run `handoff-check.mjs`
+Workflow security is `zizmor`, pinned by version and hash in the **hub's**
+`.github/requirements-ci.txt` so every sibling is audited by the same build.
+Install it once in the hub (`cd ../noahjefferson && npm run security:install`);
+then `npm run gate:security` here, which `npm run check` and `npm run gate:hub`
+both call. It always runs with `--strict-collection` — without that flag a
+workflow with a YAML error is skipped and the run still exits 0 (LESSONS §13).
+
+`npm run gate:hub` runs the two that take `--repo`, plus the security gate. **Run `handoff-check.mjs`
 and `lessons-check.mjs --checklist` before writing any status message** — the
 handoff is a deliverable and LESSONS §14 is what happens without them.
 
