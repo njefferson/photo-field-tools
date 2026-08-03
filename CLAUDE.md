@@ -74,11 +74,11 @@ Workflow security is `zizmor`, pinned by version and hash in the **hub's**
 Install it once in the hub (`cd ../noahjefferson && npm run security:install`);
 then `npm run gate:security` here, which `npm run check` and `npm run gate:hub`
 both call. It always runs with `--strict-collection` — without that flag a
-workflow with a YAML error is skipped and the run still exits 0 (LESSONS §13).
+workflow with a YAML error is skipped and the run still exits 0 (LESSONS §25).
 
 `npm run gate:hub` runs the two that take `--repo`, plus the security gate. **Run `handoff-check.mjs`
 and `lessons-check.mjs --checklist` before writing any status message** — the
-handoff is a deliverable and LESSONS §14 is what happens without them.
+handoff is a deliverable and LESSONS §26 is what happens without them.
 
 **The a11y gate opens the dialogs.** Roughly half this app's controls live in
 them; a resting-state sweep reports a clean bill of health it has not earned

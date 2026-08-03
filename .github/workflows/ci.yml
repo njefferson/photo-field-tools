@@ -135,7 +135,7 @@ jobs:
       - name: npm hygiene (hub instrument)
         run: node hub/pin-check.mjs --repo app
 
-      # LESSONS §14 — a staged candidate must be recorded with its URL and
+      # LESSONS §26 — a staged candidate must be recorded with its URL and
       # version, and no instruction may tell an iPad-first owner to go and
       # fetch a file. The acknowledgement half cannot run in CI (there is no
       # session to ask), so only the mechanical half is enforced here; the
